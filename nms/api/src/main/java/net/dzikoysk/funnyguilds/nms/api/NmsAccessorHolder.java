@@ -1,58 +1,44 @@
 package net.dzikoysk.funnyguilds.nms.api;
 
-import com.google.common.collect.ImmutableMap;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.util.Map;
-import java.util.TreeMap;
 import org.bukkit.Bukkit;
-import org.bukkit.UnsafeValues;
-import org.jetbrains.annotations.Nullable;
-import static java.lang.String.format;
 
 public final class NmsAccessorHolder {
 
-    // Version can be found in server jar in version.json under `world_version` key
-    private static final TreeMap<Integer, String> NMS_VERSION_MAPPING = new TreeMap<>(ImmutableMap.<Integer, String>builder()
-            .put(3953, "v1_21")
-            .put(4080, "v1_21_2")
-            .put(4189, "v1_21_4")
-            .put(4554, "v1_21_9")
-            .put(4788, "v26_1_1")
-            .put(5023, "v26_3")
-            .build());
+    // Minecraft 26.3: version.json -> world_version.
+    private static final int MINIMUM_DATA_VERSION = 5023;
+    private static final String ACCESSOR_CLASS = "net.dzikoysk.funnyguilds.nms.v26_3.V26_3NmsAccessor";
 
-    static final NmsAccessor INSTANCE = newAccessorInstance();
+    private NmsAccessorHolder() {
+    }
+
+    static NmsAccessor getInstance() {
+        return InstanceHolder.INSTANCE;
+    }
 
     private static NmsAccessor newAccessorInstance() {
-        String nmsVersion = getNmsVersion();
-        if (nmsVersion == null) {
-            throw new RuntimeException("No compatible NmsAccessor version found");
+        int dataVersion = Bukkit.getUnsafe().getDataVersion();
+        requireSupportedDataVersion(dataVersion);
+        if (dataVersion > MINIMUM_DATA_VERSION) {
+            Bukkit.getLogger().warning("[riftFG] Server data version " + dataVersion
+                    + " is newer than the Minecraft 26.3 adapter baseline " + MINIMUM_DATA_VERSION
+                    + "; compatibility is not verified. Report any NMS errors with the exact server build.");
         }
-
         try {
-            String className = format("net.dzikoysk.funnyguilds.nms.%s.%sNmsAccessor", nmsVersion, nmsVersion.toUpperCase());
-            return (NmsAccessor) Class.forName(className).getConstructor().newInstance();
-        } catch (Throwable th) {
-            throw new RuntimeException(format("Could not initialize NmsAccessor for version '%s'", nmsVersion), th);
+            return (NmsAccessor) Class.forName(ACCESSOR_CLASS).getConstructor().newInstance();
+        } catch (ReflectiveOperationException exception) {
+            throw new IllegalStateException("Could not initialize the riftFG Minecraft 26.3 adapter", exception);
         }
     }
 
-    @Nullable
-    private static String getNmsVersion() {
-        try {
-            Method getDataVersion = UnsafeValues.class.getMethod("getDataVersion");
-            int dataVersion = (int) getDataVersion.invoke(Bukkit.getServer().getUnsafe());
-            if (dataVersion > NMS_VERSION_MAPPING.lastKey()) {
-                Bukkit.getLogger().warning("[FunnyGuilds] Server data version " + dataVersion
-                        + " is newer than the latest adapter baseline " + NMS_VERSION_MAPPING.lastKey()
-                        + "; compatibility is not verified. Report any NMS errors with the exact server build.");
-            }
-            Map.Entry<Integer, String> versionEntry = NMS_VERSION_MAPPING.floorEntry(dataVersion);
-            return versionEntry != null ? versionEntry.getValue() : null;
-        } catch(NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {
-            throw new RuntimeException("Could not get minecraft version", ex);
+    static void requireSupportedDataVersion(int dataVersion) {
+        if (dataVersion < MINIMUM_DATA_VERSION) {
+            throw new IllegalStateException("riftFG requires Paper for Minecraft 26.3 or newer and Java 25. "
+                    + "Unsupported server data version: " + dataVersion);
         }
+    }
+
+    private static final class InstanceHolder {
+        private static final NmsAccessor INSTANCE = newAccessorInstance();
     }
 
 }

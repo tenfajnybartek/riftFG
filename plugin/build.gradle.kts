@@ -37,24 +37,18 @@ publishing {
     }
 }
 
+// Integrations may declare old Bukkit/Spigot APIs; the server supplies the Paper 26.3 API.
+configurations.configureEach {
+    exclude(group = "org.spigotmc", module = "spigot-api")
+    exclude(group = "org.bukkit", module = "bukkit")
+}
+
 @Suppress("VulnerableLibrariesLocal")
 dependencies {
     /* funnyguilds */
     implementation(project(":nms:api"))
 
-    val java25NmsModules = setOf(
-        ":nms:v26_1_1",
-        ":nms:v26_3"
-    )
-    project.project(":nms").subprojects.forEach {
-        // java 25 module - jar file avoids JVM mismatch with Java 21, and 'api' prevents Shadow minimize from stripping it.
-        // minimizer can't see reflection calls from NmsAccessorHolder, and 'exclude(project(...))' doesn't match raw file dependencies.
-        when (it.path) {
-            ":nms:api" -> Unit
-            in java25NmsModules -> api(files(it.tasks.named("jar")))
-            else -> runtimeOnly(it)
-        }
-    }
+    runtimeOnly(project(":nms:v26_3"))
     implementation("net.dzikoysk:funnycommands:0.8.0")
 
     /* std */
@@ -84,14 +78,11 @@ dependencies {
 
     implementation("org.bstats:bstats-bukkit:3.1.0")
 
-    /* GUI */
-    implementation("com.github.stefvanschie.inventoryframework:IF:0.12.0")
-
     // probably fix for some exception?
     implementation("org.apache.logging.log4j:log4j-slf4j-impl:2.20.0")
 
     // bukkit stuff
-    shadow("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
+    shadow("io.papermc.paper:paper-api:26.3.build.249-stable")
     shadow("org.apache.logging.log4j:log4j-core:2.20.0")
 
     /* hooks */
@@ -102,8 +93,8 @@ dependencies {
     shadow("us.dynmap:DynmapCoreAPI:3.7-beta-6")
 
     /* tests */
-    testImplementation("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
-    testImplementation("com.mojang:authlib:6.0.57")
+    testImplementation("io.papermc.paper:paper-api:26.3.build.249-stable")
+    testImplementation("com.mojang:authlib:10.0.77")
     testImplementation("net.milkbowl.vault:VaultAPI:1.7")
 
     val testcontainers = "1.20.4"
@@ -128,7 +119,9 @@ tasks.processResources {
 
 tasks.withType<ShadowJar> {
     val commitCount = grgitService.service.get().grgit.log().size
-    archiveFileName = "FunnyGuilds ${project.version}.$commitCount (MC 1.21 - 26.3).jar"
+    archiveFileName = "riftFG ${project.version}.$commitCount (MC 26.3+, Java 25).jar"
+
+    manifest.attributes["paperweight-mappings-namespace"] = "mojang"
 
     relocate("net.dzikoysk.funnycommands", "net.dzikoysk.funnyguilds.libs.net.dzikoysk.funnycommands")
     relocate("panda.utilities", "net.dzikoysk.funnyguilds.libs.panda.utilities")
@@ -141,7 +134,6 @@ tasks.withType<ShadowJar> {
     relocate("dev.peri", "net.dzikoysk.funnyguilds.libs.dev.peri")
     relocate("me.pikamug", "net.dzikoysk.funnyguilds.libs.me.pikamug")
     relocate("org.mariadb", "net.dzikoysk.funnyguilds.libs.org.mariadb")
-    relocate("com.github.stefvanschie.inventoryframework", "net.dzikoysk.funnyguilds.libs.inventoryframework")
 
     exclude("org/checkerframework/**")
     exclude("org/intellij/lang/annotations/**")
@@ -153,7 +145,6 @@ tasks.withType<ShadowJar> {
         exclude(dependency("net.dzikoysk:funnycommands:.*"))
         exclude(dependency("com.fasterxml.jackson.core:jackson-core:.*"))
         exclude(dependency("org.mariadb.jdbc:mariadb-java-client:.*"))
-        exclude(dependency("com.github.stefvanschie.inventoryframework:IF:.*"))
 
         // nms implementation modules are not referenced in the project but are required at runtime
         parent!!.project(":nms").subprojects.forEach {
@@ -164,7 +155,7 @@ tasks.withType<ShadowJar> {
 
 tasks {
     runServer {
-        minecraftVersion("1.21.4")
+        minecraftVersion("26.3")
     }
 }
 

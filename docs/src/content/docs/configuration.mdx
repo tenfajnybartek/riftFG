@@ -93,6 +93,8 @@ np. przy zakładaniu gildii lub dołączaniu do niej.
 
 `/funnyguilds reload` waliduje `config.yml`, `items.yml`, `tablist.yml` i istniejące pliki językowe przed zastosowaniem wartości na głównym wątku. Odnawia harmonogramy zapisu, zaproszeń i rankingu oraz dynamiczne listenery ochrony. Błąd walidacji pozostawia poprzednie ustawienia działającego pluginu.
 
+Udany reload zamyka otwarte menu `/przedmioty`, aby układ i wymagania odczytać ponownie przy następnym otwarciu. Wyłączenie pluginu również zamyka te menu.
+
 Zmiana poniższych ustawień wymaga **restartu serwera**; reload wskazuje zmienioną sekcję i odmawia zastosowania konfiguracji:
 
 - `data-model`, `mysql`, `commands`;

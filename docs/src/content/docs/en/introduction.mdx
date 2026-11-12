@@ -1,12 +1,13 @@
 ---
 title: Introduction
-description: What FunnyGuilds is and what it does — an RPG guild plugin for Minecraft servers.
+description: What riftFG is and what it does — a FunnyGuilds fork for Paper 26.3+ and Java 25.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-**FunnyGuilds** is a configurable guild plugin for Paper- and Spigot-based
-Minecraft servers. Players create guilds, claim territory, form alliances and
+**riftFG** is a configurable guild plugin for **Paper 26.3+ servers running Java 25**,
+developed as a fork of [FunnyGuilds 5.x](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x).
+Players create guilds, claim territory, form alliances and
 compete in rankings; admins configure each of those areas separately.
 
 ## Where to start
@@ -18,9 +19,10 @@ compete in rankings; admins configure each of those areas separately.
 	<LinkCard title="FAQ" description="Answers to frequently asked questions." href="/en/faq/" />
 </CardGrid>
 
-:::note[Version 5.x]
-This documentation describes FunnyGuilds **5.x**, currently available as a nightly
-(development) build. Some options may still change before the official release.
+:::note[riftFG based on FunnyGuilds 5.x]
+This documentation describes the current riftFG line. The technical plugin name `FunnyGuilds`,
+the `plugins/FunnyGuilds/` directory, commands and `funnyguilds.*` permissions are preserved.
+The original code comes from FunnyGuilds Team and its contributors under the Apache 2.0 license.
 :::
 
 ## Integrations
@@ -39,12 +41,14 @@ installed:
 ## Community
 
 Questions and discussion: [Discord](https://discord.gg/CYvyq3u).
-Bugs and feature requests: [GitHub](https://github.com/FunnyGuilds/FunnyGuilds/issues).
+Bugs and feature requests for riftFG: [GitHub](https://github.com/tenfajnybartek/riftFG/issues).
 
 ## Server compatibility
 
-:::note[riftFG support roadmap]
-The current riftFG release is the last to support Minecraft **1.21.x**. Future releases will require **Minecraft 26.3+ and Java 25**; support for every older version, including earlier 26.x releases, will be removed.
+:::note[Minimum requirements]
+riftFG requires **Paper 26.3+ and Java 25**. All adapters for older servers have been removed. Building and testing require only **JDK 25**; select it as the Gradle JVM in your IDE as well.
 :::
 
-The 5.x source tree contains NMS adapters for Paper 1.21, 1.21.2/1.21.3, 1.21.4, 1.21.9, 26.1.1 and 26.3. Earlier adapters are reused between these baselines. Plugin bytecode targets Java 21; the 26.x adapters target Java 25. A newer server data version produces an unverified-compatibility warning. Archived 4.x releases on the download page have separate requirements and do not describe 5.x compatibility.
+The only NMS adapter, `v26_3`, is compiled against Paper `26.3.build.249-stable`. It does not inherit from older adapters. The entire plugin and all NMS modules produce Java 25 bytecode. Older servers reject `api-version: '26.3'`, and the internal data-version check additionally requires at least `5023`.
+
+A newer server data version tries the 26.3 adapter and displays an unverified-compatibility warning; a Minecraft update may require a new adapter. Archived FunnyGuilds releases have separate requirements and do not describe current riftFG compatibility.

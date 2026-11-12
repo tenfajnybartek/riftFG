@@ -21,6 +21,8 @@ import net.dzikoysk.funnyguilds.feature.command.FunnyCommandsConfiguration;
 import net.dzikoysk.funnyguilds.feature.hooks.HookManager;
 import net.dzikoysk.funnyguilds.feature.items.GuildItemRequirementChecker;
 import net.dzikoysk.funnyguilds.feature.items.GuildItemSetService;
+import net.dzikoysk.funnyguilds.feature.items.gui.GuildItemsGui;
+import net.dzikoysk.funnyguilds.feature.items.gui.GuildItemsGuiListener;
 import net.dzikoysk.funnyguilds.feature.invitation.ally.AllyInvitationList;
 import net.dzikoysk.funnyguilds.feature.invitation.guild.GuildInvitationList;
 import net.dzikoysk.funnyguilds.feature.placeholders.BasicPlaceholdersService;
@@ -66,7 +68,6 @@ import net.dzikoysk.funnyguilds.listener.region.PlayerInteract;
 import net.dzikoysk.funnyguilds.listener.region.PlayerMove;
 import net.dzikoysk.funnyguilds.listener.region.PlayerRespawn;
 import net.dzikoysk.funnyguilds.listener.region.PlayerTeleport;
-import net.dzikoysk.funnyguilds.nms.Reflections;
 import net.dzikoysk.funnyguilds.nms.api.NmsAccessor;
 import net.dzikoysk.funnyguilds.nms.api.packet.FunnyGuildsInboundChannelHandler;
 import net.dzikoysk.funnyguilds.nms.api.packet.FunnyGuildsOutboundChannelHandler;
@@ -173,7 +174,6 @@ public class FunnyGuilds extends JavaPlugin {
 
     @Override
     public void onLoad() {
-        Reflections.prepareServerVersion();
         MiniLegacyHelper.miniMessage(); // Invoke class to call static initializer
 
         plugin = this;
@@ -182,14 +182,13 @@ public class FunnyGuilds extends JavaPlugin {
         this.funnyServer = new FunnyServer(this.getServer());
 
         try {
-            Class.forName("net.md_5.bungee.api.ChatColor");
+            Class.forName("io.papermc.paper.ServerBuildInfo");
         }
-        catch (Exception spigotNeeded) {
-            logger.error("FunnyGuilds requires spigot to work, your server seems to be using something else");
-            logger.error("If you think that is not true - contact plugin developers");
-            logger.error("https://github.com/FunnyGuilds/FunnyGuilds");
+        catch (ClassNotFoundException paperNeeded) {
+            logger.error("riftFG requires Paper for Minecraft 26.3 or newer and Java 25");
+            logger.error("https://github.com/tenfajnybartek/riftFG");
 
-            this.shutdown("Spigot required for service not detected!");
+            this.shutdown("Required Paper server API not detected!");
             return;
         }
 
@@ -407,6 +406,7 @@ public class FunnyGuilds extends JavaPlugin {
                     .add(PlayerJoin.class)
                     .add(PlayerLogin.class)
                     .add(PlayerQuit.class)
+                    .add(GuildItemsGuiListener.class)
                     .add(GuildHeartProtectionHandler.class)
                     .add(TntProtection.class);
 
@@ -506,6 +506,7 @@ public class FunnyGuilds extends JavaPlugin {
     public void onDisable() {
         this.isDisabling = true;
         this.getServer().getScheduler().cancelTasks(this);
+        this.closeGuildItemsMenus();
         if (!this.dataLoaded || this.dataPersistenceHandler == null || this.invitationPersistenceHandler == null) {
             if (this.dataPersistenceHandler != null) { this.dataPersistenceHandler.close(); }
             this.database.peek(Database::shutdown);
@@ -529,6 +530,14 @@ public class FunnyGuilds extends JavaPlugin {
         this.database.peek(Database::shutdown);
 
         plugin = null;
+    }
+
+    private void closeGuildItemsMenus() {
+        for (Player player : this.getServer().getOnlinePlayers()) {
+            if (player.getOpenInventory().getTopInventory().getHolder(false) instanceof GuildItemsGui) {
+                player.closeInventory();
+            }
+        }
     }
 
     public void shutdown(String content) {
@@ -741,6 +750,7 @@ public class FunnyGuilds extends JavaPlugin {
         for (java.util.Locale locale : this.pluginConfiguration.availableLocales) {
             ConfigurationFactory.createMessageConfiguration(new File(this.pluginLanguageFolderFile, locale + ".yml"));
         }
+        this.closeGuildItemsMenus();
         net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidate, this.pluginConfiguration);
         net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidateItems, this.itemsConfiguration);
         net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidateTablist, this.tablistConfiguration);

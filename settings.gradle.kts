@@ -1,4 +1,8 @@
-rootProject.name = "FunnyGuilds"
+rootProject.name = "riftFG"
+
+require(JavaVersion.current().isCompatibleWith(JavaVersion.VERSION_25)) {
+    "riftFG requires JDK 25 or newer to run Gradle. Set JAVA_HOME to your JDK 25 installation."
+}
 
 // Limit workers - apologies to anyone heating their room with Gradle (4 -> 2, 8 -> 4, 16 -> 8, 32+ -> 16)
 val cores = Runtime.getRuntime().availableProcessors()
@@ -14,11 +18,6 @@ pluginManagement {
 include(
     ":plugin",
     ":nms:api",
-    ":nms:v1_21",
-    ":nms:v1_21_2",
-    ":nms:v1_21_4",
-    ":nms:v1_21_9",
-    ":nms:v26_1_1",
     ":nms:v26_3"
 )
 

@@ -6,18 +6,15 @@ import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import net.dzikoysk.funnyguilds.FunnyGuilds;
 import net.dzikoysk.funnyguilds.shared.SafeUtils;
-import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
 
 public final class Reflections {
 
-    private static String CRAFTBUKKIT_PACKAGE;
+    private static final String CRAFTBUKKIT_PACKAGE = "org.bukkit.craftbukkit";
     private static final String NMS_PACKAGE = "net.minecraft";
-    private static String NMS_WITH_VERSION_PACKAGE = null;
 
     private static final Map<String, Class<?>> CLASS_CACHE = new HashMap<>();
     private static final Map<String, Field> FIELD_CACHE = new HashMap<>();
@@ -29,11 +26,6 @@ public final class Reflections {
     private static final FieldAccessor<?> INVALID_FIELD_ACCESSOR = getField(INVALID_CLASS, Void.class, 0);
 
     private Reflections() {
-    }
-
-    public static void prepareServerVersion() {
-        CRAFTBUKKIT_PACKAGE = Bukkit.getServer().getClass().getPackage().getName();
-        NMS_WITH_VERSION_PACKAGE = NMS_PACKAGE;
     }
 
     public static Class<?> getClassOmitCache(String className) {
@@ -61,8 +53,7 @@ public final class Reflections {
     }
 
     public static Class<?> getNMSClass(String name, String subPackage) {
-        String nmsPackage = Objects.requireNonNull(NMS_WITH_VERSION_PACKAGE, () -> NMS_PACKAGE + "." + subPackage);
-        return getClass(nmsPackage + "." + subPackage + "." + name);
+        return getClass(NMS_PACKAGE + "." + subPackage + "." + name);
     }
 
     public static Class<?> getCraftBukkitClass(String name) {

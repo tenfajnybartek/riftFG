@@ -1,10 +1,11 @@
 name: FunnyGuilds
 main: net.dzikoysk.funnyguilds.FunnyGuilds
 version: '${funnyGuildsVersion} Primrose-${funnyGuildsCommit}'
-author: 'FunnyGuilds Team'
-website: https://github.com/FunnyGuilds
+authors: ['Bartek (riftFG)', 'FunnyGuilds Team']
+description: 'riftFG - fork of FunnyGuilds 5.x for Paper 26.3+ and Java 25'
+website: https://github.com/tenfajnybartek/riftFG
 softdepend: [WorldEdit, WorldGuard, Vault, PlaceholderAPI, DecentHolograms, Multiverse-Core, dynmap]
-api-version: 1.21
+api-version: '26.3'
 
 permissions:
   funnyguilds.*:

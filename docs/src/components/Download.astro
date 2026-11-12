@@ -13,8 +13,8 @@ import Nav from './Nav.astro';
 import ReleaseChipLink from './ReleaseChipLink.astro';
 import ReleaseChangelogDetail from './ReleaseChangelogDetail.astro';
 
-const JENKINS_JOB_URL = 'https://ci.insertt.dev/job/FunnyGuilds/job/5.x/';
-const NIGHTLY_RELEASE_URL = 'https://github.com/FunnyGuilds/FunnyGuilds/releases/tag/nightly-release-publish';
+const CI_URL = 'https://github.com/tenfajnybartek/riftFG/actions/workflows/gradle.yml';
+const RELEASES_URL = 'https://github.com/tenfajnybartek/riftFG/releases';
 
 interface Props {
   content: DownloadContent;
@@ -182,9 +182,9 @@ const DISCORD_INVITE_CODE = 'CYvyq3u';
               <h2>{t.snapshot.title}</h2>
               <p class="desc">{t.snapshot.description}</p>
               <span class="fine-print">{t.snapshot.note}</span>
-              <span class="ci-link"><a href={JENKINS_JOB_URL} target="_blank" rel="noopener">{t.snapshot.ciLabel}</a></span>
+              <span class="ci-link"><a href={CI_URL} target="_blank" rel="noopener">{t.snapshot.ciLabel}</a></span>
             </div>
-            <a class="btn" href={JENKINS_JOB_URL} target="_blank" rel="noopener">{t.snapshot.buttonLabel}</a>
+            <a class="btn" href={RELEASES_URL} target="_blank" rel="noopener">{t.snapshot.buttonLabel}</a>
           </div>
 
           <div class="choice pending">
@@ -241,10 +241,10 @@ const DISCORD_INVITE_CODE = 'CYvyq3u';
             <table class="mc-table">
               <tbody>
                 <tr>
-                  <td class="mc-col">MC 1.21.x</td>
+                  <td class="mc-col">MC 26.3+ · Java 25</td>
                   <td class="release-col">
                     <div class="release-chips">
-                      <a class="release-chip release-chip-dev" href={NIGHTLY_RELEASE_URL} target="_blank" rel="noopener">
+                      <a class="release-chip release-chip-dev" href={RELEASES_URL} target="_blank" rel="noopener">
                         {t.snapshot.title}
                         <span class="dev-tag">{t.mcVersionTable.nightlyLabel}</span>
                       </a>

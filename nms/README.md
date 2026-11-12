@@ -1,15 +1,21 @@
 # NMS adapters
 
-`NmsAccessorHolder` selects an adapter using the server data version and `floorEntry`.
-The baselines are `v1_21`, `v1_21_2`, `v1_21_4`, `v1_21_9`, `v26_1_1` and `v26_3`.
-Adapters inherit unchanged implementations and override only changed server internals.
-Servers newer than the latest baseline get an explicit unverified-compatibility warning.
+riftFG requires **Paper 26.3 and Java 25**. This directory contains only `api`
+and the standalone `v26_3` implementation. Both use the pinned Paper development
+bundle `26.3.build.249-stable`; there are no dependencies on older adapters.
 
-The plugin and older adapters target Java 21; the 26.x adapters target Java 25.
-CI installs both toolchains. Pin Paper development bundles when updating an adapter;
-verify compilation and the packaged JAR, then run server startup, join/quit, heart,
+`NmsAccessorHolder` rejects server data versions below **5023** (Minecraft 26.3).
+`plugin.yml` also declares `api-version: '26.3'`. A newer server data version
+tries `v26_3` with an explicit unverified-compatibility warning; this is not a
+guarantee that future server internals remain compatible.
+
+All Java/Kotlin bytecode, tests and CI target **Java 25**. Gradle must run on JDK 25
+or newer and needs the JDK 25 toolchain. Older JDKs are not required.
+Pin Paper development bundles and the plugin's Paper API together when updating.
+Verify compilation and the packaged JAR, then run server startup, join/quit, heart,
 tablist and shutdown smoke tests on the affected server build.
 
-Local verification: `./gradlew :plugin:test :plugin:shadowJar`.
+Local verification: `./gradlew clean build`.
 Database integration tests: `./gradlew :plugin:databaseTest` (requires Docker; also run in CI).
-A successful compilation is not a claim that every intervening server version was tested.
+The three `:nms:api:test` cases check the supported-version boundary without a running server.
+The distributable JAR is `plugin/build/libs/riftFG … (MC 26.3+, Java 25).jar`.

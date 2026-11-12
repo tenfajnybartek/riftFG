@@ -1,13 +1,16 @@
 package net.dzikoysk.funnyguilds.feature.items.gui;
 
-import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
+import java.util.HashMap;
+import java.util.Map;
 import net.dzikoysk.funnyguilds.config.message.MessageService;
 import net.dzikoysk.funnyguilds.config.sections.items.GuildItemSet;
 import net.dzikoysk.funnyguilds.config.sections.items.ItemsConfiguration;
 import net.dzikoysk.funnyguilds.user.User;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 
-public class GuildItemsGui {
+public class GuildItemsGui implements InventoryHolder {
 
     private final Player player;
     private final User user;
@@ -16,7 +19,8 @@ public class GuildItemsGui {
     private final ItemsConfiguration config;
     private final MessageService messageService;
 
-    private ChestGui chestGui;
+    private final Inventory inventory;
+    private final Map<Integer, Runnable> actions = new HashMap<>();
 
     private boolean showOnlyMissing = false;
 
@@ -34,25 +38,53 @@ public class GuildItemsGui {
         this.setName = setName;
         this.config = config;
         this.messageService = messageService;
+        this.inventory = GuildItemsGuiFactory.buildInventory(this);
     }
 
     public void open() {
-        this.chestGui = GuildItemsGuiFactory.buildChestGui(this);
-        this.chestGui.show(player);
+        this.player.openInventory(this.inventory);
     }
 
     public void close() {
-        if (player.isOnline()) {
-            player.closeInventory();
+        if (this.isViewing()) {
+            this.player.closeInventory();
         }
     }
 
     public void toggleView() {
         this.showOnlyMissing = !this.showOnlyMissing;
-        if (chestGui == null) return;
-        chestGui.getPanes().clear();
-        GuildItemsGuiFactory.populatePanes(this, chestGui);
-        chestGui.update();
+        GuildItemsGuiFactory.populateInventory(this, this.inventory);
+    }
+
+    void clearActions() {
+        this.actions.clear();
+    }
+
+    void bindAction(int slot, Runnable action) {
+        this.actions.put(slot, action);
+    }
+
+    boolean hasAction(int slot) {
+        return this.actions.containsKey(slot);
+    }
+
+    void handleClick(int slot) {
+        if (!this.isViewing()) {
+            return;
+        }
+        Runnable action = this.actions.get(slot);
+        if (action != null) {
+            action.run();
+        }
+    }
+
+    private boolean isViewing() {
+        return this.player.isOnline() && this.player.getOpenInventory().getTopInventory() == this.inventory;
+    }
+
+    @Override
+    public Inventory getInventory() {
+        return this.inventory;
     }
 
     public Player getPlayer() { return player; }
@@ -62,6 +94,5 @@ public class GuildItemsGui {
     public ItemsConfiguration getConfig() { return config; }
     public MessageService getMessageService() { return messageService; }
     public boolean isShowOnlyMissing() { return showOnlyMissing; }
-    public ChestGui getChestGui() { return chestGui; }
 
 }

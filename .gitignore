@@ -66,6 +66,7 @@ crashlytics-build.properties
 *.pydevproject
 .metadata
 .gradle
+.kotlin/
 bin/
 tmp/
 *.tmp

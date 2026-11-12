@@ -93,6 +93,8 @@ guild or joining one.
 
 `/funnyguilds reload` validates `config.yml`, `items.yml`, `tablist.yml` and existing locale files before applying values on the main thread. It restarts persistence, invitations and ranking timers and reconfigures dynamic protection listeners. A validation failure keeps the previous runtime settings.
 
+A successful reload closes open `/przedmioty` menus so that layout and requirements are read again on the next opening. Disabling the plugin also closes these menus.
+
 Changes to these settings require a **server restart**; reload reports the changed section and refuses to apply the configuration:
 
 - `data-model`, `mysql`, `commands`;

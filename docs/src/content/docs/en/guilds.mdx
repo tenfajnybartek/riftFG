@@ -36,6 +36,8 @@ ranking requirements and no balance requirement. A player with the
 `funnyguilds.items.admin.bypass` permission skips every requirement, and
 `/przedmioty` opens a GUI showing them what they are still missing.
 
+The item menu uses the standard Paper 26.3 API. It preserves the `items.yml` layout, requirements summary, missing-items filter and close button. The menu is read-only: clicks, shift-clicks and dragging cannot take or insert items. Configuration reloads and plugin shutdown close open menus.
+
 Names and lore from `guild-item-library`, as well as GUI item text, are
 non-italic by default. To enable italics, use the MiniMessage `<italic>` tag
 in the relevant text.

@@ -1,16 +1,14 @@
-import io.papermc.paperweight.tasks.RemapJar
-import io.papermc.paperweight.util.constants.OBF_NAMESPACE
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
+import org.jetbrains.kotlin.gradle.dsl.JvmDefaultMode
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     `java-library`
-    application
     `maven-publish`
 
-    kotlin("jvm") version "2.2.21" apply false
+    kotlin("jvm") version "2.3.21" apply false
     id("idea")
     id("org.ajoberstar.grgit.service") version "5.3.0" apply false
     id("com.gradleup.shadow") version "9.6.1"
@@ -19,7 +17,7 @@ plugins {
 }
 
 idea {
-    project.jdkName = "21"
+    project.jdkName = "25"
 }
 
 allprojects {
@@ -29,11 +27,12 @@ allprojects {
     apply(plugin = "java-library")
     apply(plugin = "kotlin")
     apply(plugin = "maven-publish")
-    apply(plugin = "application")
     apply(plugin = "com.gradleup.shadow")
 
-    application {
-        mainClass.set("net.dzikoysk.funnyguilds.FunnyGuilds")
+    java {
+        toolchain.languageVersion.set(JavaLanguageVersion.of(25))
+        sourceCompatibility = JavaVersion.VERSION_25
+        targetCompatibility = JavaVersion.VERSION_25
     }
 
     repositories {
@@ -72,7 +71,6 @@ allprojects {
         maven("https://repo.extendedclip.com/content/repositories/placeholderapi")
         maven("https://nexus.codecrafter47.de/content/repositories/public")
         maven("https://repo.codemc.io/repository/maven-public")
-        maven("https://repo.viaversion.com/everything")
         maven("https://repo.mikeprimm.com")
     }
 }
@@ -87,7 +85,7 @@ subprojects {
         testImplementation("org.junit.jupiter:junit-jupiter-api:$junit")
         testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:$junit")
 
-        val mockito = "5.15.2"
+        val mockito = "5.20.0"
         testImplementation("org.mockito:mockito-core:$mockito")
         testImplementation("org.mockito:mockito-junit-jupiter:$mockito")
 
@@ -96,13 +94,6 @@ subprojects {
     }
 
     java {
-        toolchain {
-            languageVersion.set(JavaLanguageVersion.of(21))
-        }
-
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-
         withSourcesJar()
         withJavadocJar()
     }
@@ -119,8 +110,8 @@ subprojects {
 
     tasks.withType<KotlinCompile> {
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_21)
-            freeCompilerArgs = listOf("-Xjvm-default=all") // Generate default methods in interfaces by default
+            jvmTarget.set(JvmTarget.JVM_25)
+            jvmDefault.set(JvmDefaultMode.NO_COMPATIBILITY)
         }
     }
 
@@ -131,7 +122,7 @@ subprojects {
             "--add-opens=java.base/java.lang=ALL-UNNAMED",
             "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
             "--add-opens=java.base/java.util=ALL-UNNAMED"
-        ) // I hate JDK team (https://github.com/mockito/mockito/issues/3037)
+        )
         useJUnitPlatform { excludeTags("database") }
         setForkEvery(1)
         maxParallelForks = 4
@@ -153,12 +144,5 @@ project(":nms").subprojects {
         enabled = false
     }
 
-    dependencies {
-        implementation("xyz.jpenilla:reflection-remapper:0.1.1")
-    }
-
     apply(plugin = "io.papermc.paperweight.userdev")
-    tasks.withType<RemapJar> {
-        toNamespace = OBF_NAMESPACE
-    }
 }

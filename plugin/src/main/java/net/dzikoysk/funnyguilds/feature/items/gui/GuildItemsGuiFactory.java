@@ -1,10 +1,5 @@
 package net.dzikoysk.funnyguilds.feature.items.gui;
 
-import com.github.stefvanschie.inventoryframework.gui.GuiItem;
-import com.github.stefvanschie.inventoryframework.gui.type.ChestGui;
-import com.github.stefvanschie.inventoryframework.pane.Pane;
-import com.github.stefvanschie.inventoryframework.pane.StaticPane;
-import com.github.stefvanschie.inventoryframework.pane.util.Slot;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -26,14 +21,21 @@ import net.dzikoysk.funnyguilds.shared.adventure.MiniLegacyHelper;
 import net.dzikoysk.funnyguilds.shared.bukkit.ItemUtils;
 import net.dzikoysk.funnyguilds.user.User;
 import net.kyori.adventure.text.Component;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 public final class GuildItemsGuiFactory {
 
     private static final Pattern TOKEN_PATTERN = Pattern.compile("\\{([^}]+)}");
+
+    private record GuiEntry(ItemStack item, Runnable action) {
+        private GuiEntry(ItemStack item) {
+            this(item, null);
+        }
+    }
 
     private GuildItemsGuiFactory() {}
 
@@ -48,7 +50,7 @@ public final class GuildItemsGuiFactory {
         return new GuildItemsGui(player, user, set, setName, config, messageService);
     }
 
-    static ChestGui buildChestGui(GuildItemsGui gui) {
+    static Inventory buildInventory(GuildItemsGui gui) {
         GuiConfiguration guiConfig = gui.getConfig().gui;
         PerSetConfig perSet = guiConfig.getPerSetConfig(gui.getSetName());
 
@@ -56,16 +58,12 @@ public final class GuildItemsGuiFactory {
         if (rawTitle == null) rawTitle = gui.getSetName();
         String resolvedTitle = rawTitle.replace("{SET}", gui.getSetName());
         Component titleComponent = MiniLegacyHelper.miniMessage().deserialize(resolvedTitle);
-        String legacyTitle = LegacyComponentSerializer.legacySection().serialize(titleComponent);
-
-        ChestGui chestGui = new ChestGui(guiConfig.rows, legacyTitle);
-        chestGui.setOnGlobalClick(event -> event.setCancelled(true));
-
-        populatePanes(gui, chestGui);
-        return chestGui;
+        Inventory inventory = Bukkit.createInventory(gui, guiConfig.rows * 9, titleComponent);
+        populateInventory(gui, inventory);
+        return inventory;
     }
 
-    static void populatePanes(GuildItemsGui gui, ChestGui chestGui) {
+    static void populateInventory(GuildItemsGui gui, Inventory inventory) {
         ItemsConfiguration config = gui.getConfig();
         GuiConfiguration guiConfig = config.gui;
         PerSetConfig perSet = guiConfig.getPerSetConfig(gui.getSetName());
@@ -82,7 +80,8 @@ public final class GuildItemsGuiFactory {
         List<String> pattern = guiConfig.pattern;
         int rows = guiConfig.rows;
 
-        StaticPane pane = new StaticPane(9, rows, Pane.Priority.NORMAL);
+        inventory.clear();
+        gui.clearActions();
 
         for (int row = 0; row < Math.min(pattern.size(), rows); row++) {
             String line = pattern.get(row);
@@ -90,15 +89,18 @@ public final class GuildItemsGuiFactory {
 
             for (int col = 0; col < Math.min(tokens.size(), 9); col++) {
                 String token = tokens.get(col);
-                GuiItem guiItem = resolveToken(token, set, setItemKeys, result,
+                GuiEntry guiItem = resolveToken(token, set, setItemKeys, result,
                         displayGroup, perSet, config, gui);
                 if (guiItem != null) {
-                    pane.addItem(guiItem, col, row);
+                    int slot = row * 9 + col;
+                    inventory.setItem(slot, guiItem.item());
+                    if (guiItem.action() != null) {
+                        gui.bindAction(slot, guiItem.action());
+                    }
                 }
             }
         }
 
-        chestGui.addPane(Slot.fromXY(0, 0), pane);
     }
 
     static List<String> extractTokens(String line) {
@@ -110,7 +112,7 @@ public final class GuildItemsGuiFactory {
         return tokens;
     }
 
-    private static GuiItem resolveToken(
+    private static GuiEntry resolveToken(
             String token,
             GuildItemSet set,
             List<String> setItemKeys,
@@ -159,20 +161,20 @@ public final class GuildItemsGuiFactory {
                     met ? displayGroup.hasEnough : displayGroup.missing,
                     counts
             );
-            return new GuiItem(stack, event -> event.setCancelled(true));
+            return new GuiEntry(stack);
         }
 
         return buildFillerItem(token, config, perSet);
     }
 
-    private static GuiItem buildFillerItem(String key, ItemsConfiguration config, PerSetConfig perSet) {
+    private static GuiEntry buildFillerItem(String key, ItemsConfiguration config, PerSetConfig perSet) {
         GuildItemDefinition def = config.resolveItem(key, perSet)
                 .orElseGet(GuildItemsGuiFactory::fallbackDef);
         ItemStack stack = GuiItemBuilder.buildSimple(def);
-        return new GuiItem(stack, event -> event.setCancelled(true));
+        return new GuiEntry(stack);
     }
 
-    private static GuiItem buildToggleItem(String key, ItemsConfiguration config, PerSetConfig perSet, GuildItemsGui gui) {
+    private static GuiEntry buildToggleItem(String key, ItemsConfiguration config, PerSetConfig perSet, GuildItemsGui gui) {
         GuildItemToggleDefinition toggle = config.getToggleItem(key).orElse(null);
 
         ItemStack stack;
@@ -184,13 +186,10 @@ public final class GuildItemsGuiFactory {
             stack = GuiItemBuilder.buildSimple(def);
         }
 
-        return new GuiItem(stack, event -> {
-            event.setCancelled(true);
-            gui.toggleView();
-        });
+        return new GuiEntry(stack, gui::toggleView);
     }
 
-    private static GuiItem buildSummaryItem(
+    private static GuiEntry buildSummaryItem(
             String key,
             ItemsConfiguration config,
             PerSetConfig perSet,
@@ -260,16 +259,13 @@ public final class GuildItemsGuiFactory {
             base.setItemMeta(meta);
         }
 
-        return new GuiItem(base, event -> event.setCancelled(true));
+        return new GuiEntry(base);
     }
 
-    private static GuiItem buildCloseItem(String key, ItemsConfiguration config, PerSetConfig perSet, GuildItemsGui gui) {
+    private static GuiEntry buildCloseItem(String key, ItemsConfiguration config, PerSetConfig perSet, GuildItemsGui gui) {
         GuildItemDefinition def = config.resolveItem(key, perSet).orElseGet(GuildItemsGuiFactory::fallbackDef);
         ItemStack stack = GuiItemBuilder.buildSimple(def);
-        return new GuiItem(stack, event -> {
-            event.setCancelled(true);
-            gui.close();
-        });
+        return new GuiEntry(stack, gui::close);
     }
 
     private static GuildItemDefinition fallbackDef() {

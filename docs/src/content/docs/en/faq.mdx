@@ -22,9 +22,9 @@ notification-boss-bar-flags: []
 
 ## What is a nightly build and where can I download one?
 
-Nightly builds are plugin builds containing all the latest changes to the source code. An official release is put together every few nightly builds. Individual builds are available here: [FunnyGuilds Nightly](https://ci.insertt.dev/job/FunnyGuilds/).
+Nightly builds contain the latest code changes and may be less stable. Find riftFG releases under [Releases](https://github.com/tenfajnybartek/riftFG/releases) and development builds in [GitHub Actions](https://github.com/tenfajnybartek/riftFG/actions/workflows/gradle.yml). The current line requires Paper 26.3+ and Java 25.
 
-After installing such a version, you'll keep seeing a message about a newer version being available. This happens because the updater only takes official releases into account — nightlies aren't included. The message can be ignored.
+The updater checks the riftFG repository on branch `5.x`. `update-info` controls admin join notifications; with `update-nightly-info: true`, it compares the commit and reads `updater-nightly.txt`, while `false` uses `updater.txt`. Notifications link to this fork’s releases. The plugin also checks for the console at startup. An empty version file does not announce an incomplete version.
 
 ## Where do I find the list of FunnyGuilds permissions?
 

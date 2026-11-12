@@ -22,9 +22,9 @@ notification-boss-bar-flags: []
 
 ## Co to jest wersja nightly i gdzie ją mogę pobrać?
 
-Wersje nightly to kompilacje pluginu zawierające wszystkie najnowsze zmiany w kodzie źródłowym. Oficjalne wydanie powstaje co kilka wersji nightly. Kolejne kompilacje są dostępne tutaj: [FunnyGuilds Nightly](https://ci.insertt.dev/job/FunnyGuilds/).
+Wersje nightly zawierają najnowsze zmiany kodu i mogą być mniej stabilne. Wydania riftFG znajdziesz w [Releases](https://github.com/tenfajnybartek/riftFG/releases), a kompilacje rozwojowe w [GitHub Actions](https://github.com/tenfajnybartek/riftFG/actions/workflows/gradle.yml). Bieżąca linia wymaga Paper 26.3+ i Javy 25.
 
-Po zainstalowaniu takiej wersji będzie się pojawiał komunikat o dostępności nowej wersji. Dzieje się tak, ponieważ updater uwzględnia wyłącznie oficjalne wydania — bez nightly. Taki komunikat można zignorować.
+Aktualizator sprawdza repozytorium riftFG na gałęzi `5.x`. `update-info` steruje powiadomieniami administratorów przy wejściu; przy `update-nightly-info: true` porównywany jest commit i plik `updater-nightly.txt`, a przy `false` odczytywany jest `updater.txt`. Powiadomienie prowadzi do wydań tego forka. Przy starcie plugin sprawdza wersję również dla konsoli. Brak treści pliku wersji nie powoduje ogłoszenia niepełnej wersji.
 
 ## Gdzie znajdę listę uprawnień do FunnyGuilds?
 

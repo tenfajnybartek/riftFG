@@ -1,12 +1,13 @@
 ---
 title: Wprowadzenie
-description: Czym jest FunnyGuilds i co potrafi — plugin RPG do gildii dla serwerów Minecraft.
+description: Czym jest riftFG i co potrafi — fork FunnyGuilds dla Paper 26.3+ i Javy 25.
 ---
 
 import { CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-**FunnyGuilds** to konfigurowalny plugin gildyjny dla serwerów Minecraft
-opartych na Paperze i Spigocie. Gracze zakładają gildie, przejmują tereny,
+**riftFG** to konfigurowalny plugin gildyjny dla serwerów **Paper 26.3+ na Javie 25**,
+rozwijany jako fork [FunnyGuilds 5.x](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x).
+Gracze zakładają gildie, przejmują tereny,
 zawierają sojusze i rywalizują w rankingach; administrator konfiguruje każdy
 z tych elementów osobno.
 
@@ -19,10 +20,10 @@ z tych elementów osobno.
 	<LinkCard title="FAQ" description="Odpowiedzi na najczęściej zadawane pytania." href="/faq/" />
 </CardGrid>
 
-:::note[Wersja 5.x]
-Dokumentacja opisuje FunnyGuilds **5.x**, który jest obecnie dostępny w wersji
-nightly (rozwojowej). Część opcji może się jeszcze zmienić przed oficjalnym
-wydaniem.
+:::note[riftFG na bazie FunnyGuilds 5.x]
+Dokumentacja opisuje bieżącą linię riftFG. Techniczna nazwa pluginu `FunnyGuilds`,
+katalog `plugins/FunnyGuilds/`, komendy i uprawnienia `funnyguilds.*` są zachowane.
+Kod oryginału pochodzi od FunnyGuilds Team i współtwórców i jest objęty licencją Apache 2.0.
 :::
 
 ## Integracje
@@ -41,12 +42,14 @@ zainstalowane:
 ## Społeczność
 
 Pytania i dyskusje: [Discord](https://discord.gg/CYvyq3u).
-Błędy i propozycje zmian: [GitHub](https://github.com/FunnyGuilds/FunnyGuilds/issues).
+Błędy i propozycje zmian riftFG: [GitHub](https://github.com/tenfajnybartek/riftFG/issues).
 
 ## Zgodność serwera
 
-:::note[Plan wsparcia riftFG]
-Bieżące wydanie riftFG jest ostatnim z obsługą Minecraft **1.21.x**. Kolejne wydania będą wymagały **Minecraft 26.3+ i Javy 25**; obsługa wszystkich starszych wersji, także wcześniejszych wydań 26.x, zostanie usunięta.
+:::note[Minimalne wymagania]
+riftFG wymaga **Paper 26.3+ i Javy 25**. Wszystkie adaptery dla starszych serwerów zostały usunięte. Budowanie i testy wymagają wyłącznie **JDK 25**; ustaw go również jako JVM Gradle w IDE.
 :::
 
-Źródła 5.x zawierają adaptery NMS dla Paper 1.21, 1.21.2/1.21.3, 1.21.4, 1.21.9, 26.1.1 i 26.3. Pomiędzy tymi punktami bazowymi wykorzystywane są wcześniejsze adaptery. Kod pluginu ma docelowo Javę 21, a adaptery 26.x — Javę 25. Nowsza wersja danych serwera powoduje ostrzeżenie o niezweryfikowanej zgodności. Archiwalne wydania 4.x na stronie pobierania mają osobne wymagania i nie określają zgodności 5.x.
+Jedyny adapter NMS, `v26_3`, jest kompilowany przeciwko Paper `26.3.build.249-stable`. Nie dziedziczy po starszych adapterach. Cały plugin i moduły NMS generują bytecode Javy 25. Starszy serwer odrzuca `api-version: '26.3'`, a kontrola wersji danych dodatkowo wymaga wartości co najmniej `5023`.
+
+Nowsza wersja danych serwera próbuje użyć adaptera 26.3 i wyświetla ostrzeżenie o niezweryfikowanej zgodności; aktualizacja Minecrafta może wymagać nowego adaptera. Archiwalne wydania FunnyGuilds mają osobne wymagania i nie określają zgodności bieżącego riftFG.

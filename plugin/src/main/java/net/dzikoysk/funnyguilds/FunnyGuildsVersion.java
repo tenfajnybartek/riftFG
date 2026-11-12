@@ -12,10 +12,10 @@ public final class FunnyGuildsVersion {
 
     private static final Gson GSON = new Gson();
 
-    private static final String GH_COMMITS_URL = "https://api.github.com/repos/FunnyGuilds/FunnyGuilds/commits?sha=5.x&per_page=1";
-    private static final String VERSION_FILE_URL = "https://funnyguilds.dzikoysk.net/latest.info";
-    private static final String NIGHTLY_VERSION_FILE_URL = "https://raw.githubusercontent.com/FunnyGuilds/FunnyGuilds/5.x/updater-nightly.txt";
-    private static final String GITHUB_URL = "https://github.com/funnyguilds/funnyguilds";
+    private static final String GH_COMMITS_URL = "https://api.github.com/repos/tenfajnybartek/riftFG/commits?sha=5.x&per_page=1";
+    private static final String VERSION_FILE_URL = "https://raw.githubusercontent.com/tenfajnybartek/riftFG/5.x/updater.txt";
+    private static final String NIGHTLY_VERSION_FILE_URL = "https://raw.githubusercontent.com/tenfajnybartek/riftFG/5.x/updater-nightly.txt";
+    private static final String GITHUB_URL = "https://github.com/tenfajnybartek/riftFG/releases";
     private static final String DISCORD_URL = "https://discord.com/invite/CYvyq3u";
 
     private final FunnyGuilds funnyGuilds;
@@ -51,7 +51,10 @@ public final class FunnyGuildsVersion {
                         return;
                     }
 
-                    String latestNightlyVersion = FunnyIOUtils.getContent(NIGHTLY_VERSION_FILE_URL);
+                    String latestNightlyVersion = FunnyIOUtils.getContent(NIGHTLY_VERSION_FILE_URL).strip();
+                    if (latestNightlyVersion.isEmpty()) {
+                        return;
+                    }
                     JsonObject latestCommit = ghCommits.get(0).getAsJsonObject();
                     String latestCommitHash = latestCommit.get("sha").getAsString().substring(0, 7);
 
@@ -67,7 +70,7 @@ public final class FunnyGuildsVersion {
                 }
             }
             else {
-                String latestRelease = FunnyIOUtils.getContent(VERSION_FILE_URL);
+                String latestRelease = FunnyIOUtils.getContent(VERSION_FILE_URL).strip();
                 if (latestRelease.isEmpty()) {
                     return;
                 }
