@@ -252,7 +252,7 @@ public class GuildManager {
                             });
                         }
 
-                        plugin.getRegionManager().deleteRegion(plugin.getDataModel(), region);
+                        plugin.getRegionManager().removeRegion(region);
                     });
         }
 
@@ -263,13 +263,8 @@ public class GuildManager {
             guild.getMembers().forEach(member -> plugin.scheduleFunnyTasks(new ScoreboardGlobalUpdateUserSyncTask(manager, member)));
         });
 
-        if (plugin.getDataModel() instanceof FlatDataModel) {
-            FlatDataModel dataModel = ((FlatDataModel) plugin.getDataModel());
-            dataModel.getGuildFile(guild).peek(FunnyIOUtils::deleteFile);
-        }
-        else if (plugin.getDataModel() instanceof SQLDataModel) {
-            DatabaseGuildSerializer.delete(guild);
-        }
+        plugin.getDataPersistenceHandler().submitWrite(net.dzikoysk.funnyguilds.data.PendingDeletion.prepare(
+                plugin, "guild", guild.getUUID().toString(), guild.getName(), guild.getRegion().map(Region::getName).orNull()));
 
         this.removeGuild(guild);
     }

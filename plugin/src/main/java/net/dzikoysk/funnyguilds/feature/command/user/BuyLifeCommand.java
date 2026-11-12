@@ -25,6 +25,7 @@ import net.dzikoysk.funnyguilds.shared.TimeUtils;
 import net.dzikoysk.funnyguilds.shared.bukkit.ItemUtils;
 import net.dzikoysk.funnyguilds.user.User;
 import org.bukkit.entity.Player;
+import net.milkbowl.vault.economy.EconomyResponse;
 import org.bukkit.inventory.ItemStack;
 import static net.dzikoysk.funnyguilds.feature.command.DefaultValidation.when;
 
@@ -66,10 +67,17 @@ public final class BuyLifeCommand extends AbstractFunnyCommand {
         }
 
         double requiredMoney = buyLifeConfig.money * multiplier;
+        if (!Double.isFinite(requiredMoney)) {
+            throw new IllegalArgumentException("buy-life price exceeds the supported range");
+        }
         List<ItemStack> requiredItems = new ArrayList<>();
         for (ItemStack item : buyLifeConfig.items) {
             ItemStack scaled = item.clone();
-            scaled.setAmount((int) Math.ceil(item.getAmount() * multiplier));
+            double amount = Math.ceil(item.getAmount() * multiplier);
+            if (!Double.isFinite(amount) || amount < 1 || amount > Integer.MAX_VALUE) {
+                throw new IllegalArgumentException("buy-life item cost exceeds the supported range");
+            }
+            scaled.setAmount((int) amount);
             requiredItems.add(scaled);
         }
 
@@ -77,7 +85,7 @@ public final class BuyLifeCommand extends AbstractFunnyCommand {
         boolean requireItems = buyLifeConfig.paymentType == BuyLifePaymentType.ITEMS || buyLifeConfig.paymentType == BuyLifePaymentType.BOTH;
 
         if (requireMoney && requiredMoney > 0) {
-            if (!HookManager.VAULT.isPresent() || !VaultHook.canAfford(player, requiredMoney)) {
+            if (!VaultHook.isEconomyHooked() || !VaultHook.canAfford(player, requiredMoney)) {
                 this.messageService.getMessage(config -> config.buyLifeNoMoney)
                         .receiver(player)
                         .with("{MONEY}", requiredMoney)
@@ -104,12 +112,33 @@ public final class BuyLifeCommand extends AbstractFunnyCommand {
             return;
         }
 
-        if (requireItems && !requiredItems.isEmpty()) {
-            player.getInventory().removeItem(ItemUtils.toArray(requiredItems));
+        // Event listeners can change the guild, balance or inventory. Validate again before charging.
+        if (!deputy.getGuild().contentEquals(guild) || guild.getLives() != livesBefore
+                || !player.isOnline() || this.guildManager.findByUuid(guild.getUUID()).isEmpty()) {
+            return;
         }
-
-        if (requireMoney && requiredMoney > 0 && HookManager.VAULT.isPresent()) {
-            VaultHook.withdrawFromPlayerBank(player, requiredMoney);
+        if (requireItems && !ItemUtils.playerHasEnoughItems(player, requiredItems, config -> config.buyLifeNoItems)) {
+            return;
+        }
+        if (requireMoney && requiredMoney > 0) {
+            if (!VaultHook.isEconomyHooked()) {
+                return;
+            }
+            EconomyResponse response = VaultHook.withdrawFromPlayerBank(player, requiredMoney);
+            if (!response.transactionSuccess()) {
+                this.messageService.getMessage(config -> config.withdrawError)
+                        .receiver(player).with("{ERROR}", response.errorMessage).send();
+                return;
+            }
+        }
+        if (requireItems && !ItemUtils.takeItems(player, requiredItems)) {
+            if (requireMoney && requiredMoney > 0) {
+                EconomyResponse refund = VaultHook.depositToPlayerBank(player, requiredMoney);
+                if (!refund.transactionSuccess()) {
+                    throw new IllegalStateException("Life purchase refund failed for " + player.getUniqueId() + ": " + refund.errorMessage);
+                }
+            }
+            return;
         }
 
         guild.updateLives(l -> l + 1);

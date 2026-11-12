@@ -9,7 +9,7 @@ import net.dzikoysk.funnyguilds.event.guild.GuildHeartInteractEvent.Click;
 import net.dzikoysk.funnyguilds.feature.security.SecuritySystem;
 import net.dzikoysk.funnyguilds.guild.Guild;
 import net.dzikoysk.funnyguilds.nms.heart.GuildEntityHelper;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
 import net.dzikoysk.funnyguilds.shared.bukkit.FunnyServer;
 import net.dzikoysk.funnyguilds.user.User;
 import org.bukkit.Location;
@@ -17,7 +17,7 @@ import org.bukkit.entity.Player;
 import panda.std.Pair;
 import panda.std.stream.PandaStream;
 
-public class WarAttackAsyncTask extends AsyncFunnyTask {
+public class WarAttackAsyncTask extends SyncFunnyTask {
 
     private final FunnyServer funnyServer;
     private final GuildEntityHelper guildEntityHelper;

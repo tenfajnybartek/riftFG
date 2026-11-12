@@ -88,3 +88,23 @@ posiadanych uprawnień.
 
 2\* — wartość rankingu należy podać tylko tam, gdzie ma ona zastosowanie —
 np. przy zakładaniu gildii lub dołączaniu do niej.
+
+## Reload i restart
+
+`/funnyguilds reload` waliduje `config.yml`, `items.yml`, `tablist.yml` i istniejące pliki językowe przed zastosowaniem wartości na głównym wątku. Odnawia harmonogramy zapisu, zaproszeń i rankingu oraz dynamiczne listenery ochrony. Błąd walidacji pozostawia poprzednie ustawienia działającego pluginu.
+
+Zmiana poniższych ustawień wymaga **restartu serwera**; reload wskazuje zmienioną sekcję i odmawia zastosowania konfiguracji:
+
+- `data-model`, `mysql`, `commands`;
+- `regions-enabled`, `heart`, `region-size`, `enlarge-size`, `enlarge-items`;
+- `default-locale`, `available-locales`, `disabled-hooks`.
+
+Nie używaj serwerowej komendy `/reload`.
+
+## Zapis i odzyskiwanie danych
+
+Autosave i `/funnyguilds save-all` zapisują przechwycony stan przez jedną kolejkę. Nieudane zapisy są ponawiane bez czyszczenia informacji o zmianach; save-all zgłasza sukces dopiero po zakończeniu operacji. Migawki SQL są zapisywane transakcyjnie. Tryby `MYSQL` i `MARIADB` korzystają z dołączonego sterownika MariaDB JDBC; zewnętrzny sterownik MySQL nie jest wymagany.
+
+Pliki FLAT są podmieniane przez plik tymczasowy; poprzednia treść pozostaje w pliku `.bak`. Kopie i pliki tymczasowe nie są wczytywane jako encje. Niepoprawny plik encji lub błąd odczytu SQL zatrzymuje start bez automatycznego kasowania niespójnych gildii i regionów. Zachowaj dane i sprawdź wskazany w logu plik/rekord przed naprawą. Wewnętrzny dziennik `data/pending-deletions.yml` wznawia jawnie zlecone usunięcia przerwane błędem; nie służy do ogólnej automatycznej naprawy danych.
+
+Wysyłka diagnostyki przez `/funnyguilds funnybin` ma limit **8 MiB na plik** i timeouty sieciowe. Wariant `config` maskuje dane połączenia z bazą; logi i własne pliki mogą zawierać dane poufne, więc sprawdź je przed zleceniem wysyłki.

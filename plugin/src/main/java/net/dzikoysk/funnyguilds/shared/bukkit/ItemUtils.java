@@ -45,7 +45,7 @@ public final class ItemUtils {
     private ItemUtils() { }
 
     public static boolean playerHasEnoughItems(Player player, List<ItemStack> requiredItems, Function<MessageConfiguration, Sendable> messageSupplier) {
-        for (ItemStack requiredItem : requiredItems) {
+        for (ItemStack requiredItem : mergeItems(requiredItems)) {
             if (player.getInventory().containsAtLeast(requiredItem, requiredItem.getAmount())) {
                 continue;
             }
@@ -59,6 +59,47 @@ public final class ItemUtils {
             return false;
         }
         return true;
+    }
+
+    public static List<ItemStack> mergeItems(List<ItemStack> items) {
+        List<ItemStack> merged = new ArrayList<>();
+        for (ItemStack item : items) {
+            ItemStack existing = merged.stream().filter(entry -> entry.isSimilar(item)).findFirst().orElse(null);
+            if (existing == null) {
+                merged.add(item.clone());
+            }
+            else {
+                existing.setAmount(Math.addExact(existing.getAmount(), item.getAmount()));
+            }
+        }
+        return merged;
+    }
+
+    public static boolean takeItems(Player player, List<ItemStack> items) {
+        List<ItemStack> merged = mergeItems(items);
+        for (ItemStack item : merged) {
+            if (!player.getInventory().containsAtLeast(item, item.getAmount())) {
+                return false;
+            }
+        }
+        ItemStack[] before = Arrays.stream(player.getInventory().getStorageContents())
+                .map(item -> item == null ? null : item.clone()).toArray(ItemStack[]::new);
+        try {
+            if (player.getInventory().removeItem(toArray(merged)).isEmpty()) {
+                return true;
+            }
+        }
+        catch (RuntimeException exception) {
+            player.getInventory().setStorageContents(before);
+            return false;
+        }
+        player.getInventory().setStorageContents(before);
+        return false;
+    }
+
+    public static void returnItems(Player player, ItemStack[] items) {
+        player.getInventory().addItem(items).values().forEach(item ->
+                player.getWorld().dropItemNaturally(player.getLocation(), item));
     }
 
     public static ItemStack parseItem(String itemString) {

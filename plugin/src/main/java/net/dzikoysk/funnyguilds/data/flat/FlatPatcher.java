@@ -1,6 +1,8 @@
 package net.dzikoysk.funnyguilds.data.flat;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import net.dzikoysk.funnyguilds.FunnyGuilds;
 import net.dzikoysk.funnyguilds.shared.FunnyIOUtils;
 
@@ -10,6 +12,12 @@ public final class FlatPatcher {
     }
 
     public static void patch(FunnyGuilds plugin, File usersFolder, File guildsFolder, File regionsFolder) {
+        try {
+            Files.createDirectories(usersFolder.toPath().getParent());
+        }
+        catch (IOException exception) {
+            throw new IllegalStateException("Cannot prepare the data directory; existing data was preserved", exception);
+        }
         File users = new File(plugin.getDataFolder(), "users");
         File guilds = new File(plugin.getDataFolder(), "guilds");
         File regions = new File(plugin.getDataFolder(), "regions");
@@ -35,15 +43,15 @@ public final class FlatPatcher {
             FunnyGuilds.getPluginLogger().update("Updating files...");
 
             if (usersExists && !users.renameTo(usersFolder)) {
-                FunnyGuilds.getPluginLogger().error("Failed to rename old users folder");
+                throw new IllegalStateException("Failed to migrate legacy users folder; data was preserved");
             }
 
             if (guildsExists && !guilds.renameTo(guildsFolder)) {
-                FunnyGuilds.getPluginLogger().error("Failed to rename old guilds folder");
+                throw new IllegalStateException("Failed to migrate legacy guilds folder; data was preserved");
             }
 
             if (regionsExists && !regions.renameTo(regionsFolder)) {
-                FunnyGuilds.getPluginLogger().error("Failed to rename old regions folder");
+                throw new IllegalStateException("Failed to migrate legacy regions folder; data was preserved");
             }
 
             usersList = users.listFiles();

@@ -23,11 +23,13 @@ import net.dzikoysk.funnyguilds.shared.TimeUtils;
 import net.dzikoysk.funnyguilds.user.User;
 import net.dzikoysk.funnyguilds.user.UserManager;
 import org.bukkit.entity.Player;
+import org.bukkit.Bukkit;
 import panda.std.Option;
 
 public class WarSystem {
 
     private static WarSystem instance;
+    private final java.util.Set<java.util.UUID> attacksInProgress = new java.util.HashSet<>();
 
     public WarSystem() {
         instance = this;
@@ -43,6 +45,20 @@ public class WarSystem {
 
     public void attack(Player player, Guild guild) {
         FunnyGuilds plugin = FunnyGuilds.getInstance();
+        if (!Bukkit.isPrimaryThread()) {
+            Bukkit.getScheduler().runTask(plugin, () -> this.attack(player, guild));
+            return;
+        }
+        if (!this.attacksInProgress.add(guild.getUUID())) { return; }
+        try { this.attackOnMainThread(player, guild); }
+        finally { this.attacksInProgress.remove(guild.getUUID()); }
+    }
+
+    private void attackOnMainThread(Player player, Guild guild) {
+        FunnyGuilds plugin = FunnyGuilds.getInstance();
+        if (!player.isOnline() || plugin.getGuildManager().findByUuid(guild.getUUID()).isEmpty()) {
+            return;
+        }
         UserManager userManager = plugin.getUserManager();
         PluginConfiguration pluginConfiguration = plugin.getPluginConfiguration();
         WarConfiguration warConfig = pluginConfiguration.war;
@@ -121,12 +137,12 @@ public class WarSystem {
             return;
         }
 
-        guild.setProtection(Instant.now().plus(warConfig.wait));
-
-        if (SimpleEventHandler.handle(new GuildLivesChangeEvent(EventCause.SYSTEM, user, guild, guild.getLives() - 1))) {
-            guild.setHeartLives(warConfig.heartLives);
-            guild.updateLives(lives -> lives - 1);
+        if (!SimpleEventHandler.handle(new GuildLivesChangeEvent(EventCause.SYSTEM, user, guild, guild.getLives() - 1))) {
+            return;
         }
+        guild.setProtection(Instant.now().plus(warConfig.wait));
+        guild.setHeartLives(warConfig.heartLives);
+        guild.updateLives(lives -> lives - 1);
 
         if (guild.getLives() < 1) {
             this.conquer(attacker, guild, user);
@@ -141,12 +157,12 @@ public class WarSystem {
                     .send();
 
             if (warConfig.mode == WarMode.MODERN && warConfig.conquerGainLife) {
-                this.tryRewardConquerLife(player, attacker, guild, user);
+                this.tryRewardConquerLife(player, attacker, guild, user, GainReason.HEART_CONQUER);
             }
         }
     }
 
-    private void tryRewardConquerLife(Player player, Guild attacker, Guild victim, User user) {
+    private void tryRewardConquerLife(Player player, Guild attacker, Guild victim, User user, GainReason reason) {
         FunnyGuilds plugin = FunnyGuilds.getInstance();
         PluginConfiguration pluginConfiguration = plugin.getPluginConfiguration();
         WarConfiguration warConfig = pluginConfiguration.war;
@@ -198,10 +214,12 @@ public class WarSystem {
         int livesBefore = attacker.getLives();
         int livesAfter = livesBefore + 1;
 
-        if (!SimpleEventHandler.handle(new GuildLifeGainEvent(EventCause.USER, user, attacker, GainReason.HEART_CONQUER, livesBefore, livesAfter))) {
+        if (!SimpleEventHandler.handle(new GuildLifeGainEvent(EventCause.USER, user, attacker, reason, livesBefore, livesAfter))) {
             return;
         }
 
+        if (attacker.getLives() != livesBefore || !user.getGuild().contentEquals(attacker)
+                || plugin.getGuildManager().findByUuid(attacker.getUUID()).isEmpty()) { return; }
         attacker.updateLives(l -> l + 1);
         if (antiFarming.enabled) {
             attacker.setGainLifeCooldownOn(victim, antiFarming.victimCooldown);
@@ -253,12 +271,8 @@ public class WarSystem {
 
         if (warConfig.mode == WarMode.MODERN) {
             if (warConfig.winGainLife && conqueror.getLives() < warConfig.maxLives) {
-                int livesBefore = conqueror.getLives();
-                int livesAfter = livesBefore + 1;
-
-                if (SimpleEventHandler.handle(new GuildLifeGainEvent(EventCause.SYSTEM, attacker, conqueror, GainReason.WAR_WIN, livesBefore, livesAfter))) {
-                    conqueror.updateLives(l -> l + 1);
-                }
+                plugin.getFunnyServer().getPlayer(attacker).peek(player ->
+                        this.tryRewardConquerLife(player, conqueror, loser, attacker, GainReason.WAR_WIN));
             }
 
             if (warConfig.streak.enabled && warConfig.streak.broadcastMilestones.contains(conqueror.getWarStreak())) {

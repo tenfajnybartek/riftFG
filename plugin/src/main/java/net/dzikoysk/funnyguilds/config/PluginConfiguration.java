@@ -1213,7 +1213,7 @@ public class PluginConfiguration extends OkaeriConfig {
     public enum DataModel {
 
         FLAT(null),
-        MYSQL("com.mysql.cj.jdbc.Driver"),
+        MYSQL("org.mariadb.jdbc.Driver"),
         MARIADB("org.mariadb.jdbc.Driver");
 
         private final @Nullable String jdbcClassName;

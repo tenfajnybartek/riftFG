@@ -24,6 +24,8 @@ public class IndividualNameTag {
     private final PluginConfiguration pluginConfiguration;
     private final GuildPermissionChecker permissionChecker;
 
+    private final java.util.Set<Team> ownedTeams = new java.util.HashSet<>();
+
     private WeakReference<Player> playerRef;
     private final User user;
 
@@ -101,10 +103,19 @@ public class IndividualNameTag {
         }
     }
 
+    public void close() {
+        for (Team team : this.ownedTeams) {
+            try { team.unregister(); }
+            catch (IllegalStateException ignored) { /* Already removed by a player update. */ }
+        }
+        this.ownedTeams.clear();
+    }
+
     private Team prepareTeam(Scoreboard scoreboard, String teamOwner) {
         Team team = scoreboard.getTeam(teamOwner);
         if (team == null) {
             team = scoreboard.registerNewTeam(teamOwner);
+            this.ownedTeams.add(team);
         }
 
         if (!team.hasEntry(teamOwner)) {

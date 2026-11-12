@@ -178,33 +178,40 @@ public final class FlatGuildSerializer {
         values[20] = warStreak;
         values[21] = lastLifeBuy;
 
-        return DeserializationUtils.deserializeGuild(config, guildManager, values);
+        return DeserializationUtils.deserializeGuild(config, guildManager, values)
+                .peek(guild -> guild.restoreLifeGainCooldowns(wrapper.getString("life-gain-cooldowns")));
     }
 
     public static boolean serialize(Guild guild) {
+        prepare(guild).run();
+        return true;
+    }
+
+    public static Runnable prepare(Guild guild) {
+        long revision = guild.getRevision();
         FlatDataModel dataModel = (FlatDataModel) FunnyGuilds.getInstance().getDataModel();
 
         if (guild.getOwner() == null) {
             FunnyGuilds.getPluginLogger().error("[Serialize] Cannot serialize guild: " + guild.getName() + ", caused by: owner is null");
-            return false;
+            throw new IllegalStateException("Cannot prepare guild for persistence");
         }
 
         if (!guild.hasRegion() && FunnyGuilds.getInstance().getPluginConfiguration().regionsEnabled) {
             FunnyGuilds.getPluginLogger().error("[Serialize] Cannot serialize guild: " + guild.getName() + ", caused by: region is null");
-            return false;
+            throw new IllegalStateException("Cannot prepare guild for persistence");
         }
 
         Option<File> fileOption = dataModel.getGuildFile(guild);
         if (fileOption.isEmpty()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare guild for persistence");
         }
 
         File guildFile = fileOption.get();
         if (guildFile.isDirectory()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare guild for persistence");
         }
 
-        YamlWrapper wrapper = new YamlWrapper(guildFile);
+        YamlWrapper wrapper = new YamlWrapper(guildFile, false);
         wrapper.set("uuid", guild.getUUID().toString());
         wrapper.set("name", guild.getName());
         wrapper.set("tag", guild.getTag());
@@ -227,12 +234,10 @@ public final class FlatGuildSerializer {
         wrapper.set("last-life-buy", guild.getLastLifeBuy().map(Instant::toEpochMilli).orElseGet(0L));
         wrapper.set("ban", guild.getBan().map(Instant::toEpochMilli).orElseGet(0L));
         wrapper.set("pvp", guild.hasPvPEnabled());
+        wrapper.set("life-gain-cooldowns", guild.serializeLifeGainCooldowns());
         wrapper.set("deputy", FunnyStringUtils.join(Entity.names(guild.getDeputies()), false));
 
-        wrapper.save();
-        guild.markUnchanged();
-
-        return true;
+        return wrapper.snapshot(() -> guild.markSaved(revision));
     }
 
     @SuppressWarnings("unchecked")

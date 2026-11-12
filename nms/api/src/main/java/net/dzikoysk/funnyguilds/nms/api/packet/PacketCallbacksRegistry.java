@@ -2,10 +2,11 @@ package net.dzikoysk.funnyguilds.nms.api.packet;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class PacketCallbacksRegistry implements PacketCallbacks {
 
-    private final List<PacketCallbacks> packetCallbacks = new ArrayList<>();
+    private final List<PacketCallbacks> packetCallbacks = new CopyOnWriteArrayList<>();
 
     public void registerPacketCallback(PacketCallbacks callbacks) {
         this.packetCallbacks.add(callbacks);

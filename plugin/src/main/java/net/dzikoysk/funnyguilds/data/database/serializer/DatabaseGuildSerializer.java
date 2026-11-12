@@ -176,7 +176,11 @@ public final class DatabaseGuildSerializer {
             values[20] = warStreak;
             values[21] = lastLifeBuy;
 
-            return DeserializationUtils.deserializeGuild(plugin.getPluginConfiguration(), plugin.getGuildManager(), values);
+            return DeserializationUtils.deserializeGuild(plugin.getPluginConfiguration(), plugin.getGuildManager(), values)
+                    .peek(guild -> {
+                        try { guild.restoreLifeGainCooldowns(resultSet.getString("life_gain_cooldowns")); }
+                        catch (SQLException exception) { throw new IllegalStateException(exception); }
+                    });
         }
         catch (Exception exception) {
             FunnyGuilds.getPluginLogger().error("Could not deserialize guild (id: " + id + ", name: " + name + ")", exception);
@@ -186,6 +190,11 @@ public final class DatabaseGuildSerializer {
     }
 
     public static void serialize(Guild guild) {
+        prepare(guild).run();
+    }
+
+    public static Runnable prepare(Guild guild) {
+        long revision = guild.getRevision();
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLNamedStatement statement = SQLBasicUtils.getInsert(dataModel.getGuildsTable());
 
@@ -219,27 +228,38 @@ public final class DatabaseGuildSerializer {
         statement.set("ban", guild.getBan().map(Instant::toEpochMilli).orElseGet(0L));
         statement.set("pvp", guild.hasPvPEnabled());
         statement.set("info", "");
+        statement.set("life_gain_cooldowns", guild.serializeLifeGainCooldowns());
 
-        statement.executeUpdate();
-        guild.markUnchanged();
+        return () -> {
+            statement.executeUpdate();
+            net.dzikoysk.funnyguilds.data.database.Database.afterCommit(() -> guild.markSaved(revision));
+        };
     }
 
     public static void delete(Guild guild) {
+        prepareDelete(guild).run();
+    }
+
+    public static Runnable prepareDelete(Guild guild) {
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLNamedStatement statement = SQLBasicUtils.getDelete(dataModel.getGuildsTable());
 
         statement.set("uuid", guild.getUUID().toString());
-        statement.executeUpdate();
+        return statement::executeUpdate;
     }
 
     public static void updatePoints(Guild guild) {
+        prepareUpdatePoints(guild).run();
+    }
+
+    public static Runnable prepareUpdatePoints(Guild guild) {
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLTable table = dataModel.getGuildsTable();
         SQLNamedStatement statement = SQLBasicUtils.getUpdate(table, table.getSQLElement("points").orNull());
 
         statement.set("points", guild.getRank().getAveragePoints());
         statement.set("uuid", guild.getUUID().toString());
-        statement.executeUpdate();
+        return statement::executeUpdate;
     }
 
 }

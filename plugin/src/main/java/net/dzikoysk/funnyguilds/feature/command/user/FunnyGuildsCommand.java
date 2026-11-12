@@ -8,7 +8,7 @@ import net.dzikoysk.funnycommands.stereotypes.FunnyComponent;
 import net.dzikoysk.funnyguilds.FunnyGuilds;
 import net.dzikoysk.funnyguilds.data.DataModel;
 import net.dzikoysk.funnyguilds.feature.command.AbstractFunnyCommand;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
 import net.dzikoysk.funnyguilds.shared.TimeUtils;
 import net.dzikoysk.funnyguilds.telemetry.FunnybinAsyncTask;
 import org.bukkit.command.CommandSender;
@@ -68,21 +68,17 @@ public final class FunnyGuildsCommand extends AbstractFunnyCommand {
                 .send();
         Instant startTime = Instant.now();
 
-        DataModel dataModel = this.dataModel;
-        try {
-            dataModel.save(false);
-            this.plugin.getInvitationPersistenceHandler().saveInvitations();
-        }
-        catch (Exception exception) {
-            FunnyGuilds.getPluginLogger().error("An error occurred while saving plugin data!", exception);
-            return;
-        }
-
-        String time = TimeUtils.formatTimeSimple(Duration.between(startTime, Instant.now()));
-        this.messageService.getMessage(config -> config.saveallSaved)
-                .receiver(sender)
-                .with("{TIME}", time)
-                .send();
+        this.plugin.getDataPersistenceHandler().save(true).whenComplete((ignored, failure) -> {
+            if (!this.plugin.isEnabled()) { return; }
+            this.plugin.getServer().getScheduler().runTask(this.plugin, () -> {
+                if (failure != null) {
+                    sender.sendMessage("FunnyGuilds: save failed; see server log. Unsaved changes will be retried.");
+                    return;
+                }
+                String time = TimeUtils.formatTimeSimple(Duration.between(startTime, Instant.now()));
+                this.messageService.getMessage(config -> config.saveallSaved).receiver(sender).with("{TIME}", time).send();
+            });
+        });
     }
 
     private void post(CommandSender sender, String[] args) {
@@ -104,7 +100,7 @@ public final class FunnyGuildsCommand extends AbstractFunnyCommand {
         this.plugin.scheduleFunnyTasks(new ReloadAsyncTask(this.plugin, sender));
     }
 
-    private static final class ReloadAsyncTask extends AsyncFunnyTask {
+    private static final class ReloadAsyncTask extends SyncFunnyTask {
 
         private final FunnyGuilds plugin;
         private final CommandSender sender;
@@ -118,7 +114,14 @@ public final class FunnyGuildsCommand extends AbstractFunnyCommand {
 
         @Override
         public void execute() {
-            this.plugin.reloadConfiguration();
+            try {
+                this.plugin.reloadConfiguration();
+            }
+            catch (RuntimeException exception) {
+                FunnyGuilds.getPluginLogger().error("Reload failed; configuration validation did not complete", exception);
+                this.sender.sendMessage("FunnyGuilds: reload failed: " + exception.getMessage());
+                return;
+            }
             this.plugin.getDataPersistenceHandler().reloadHandler();
             this.plugin.getDynamicListenerManager().reloadAll();
             this.plugin.reloadTablistRendering();

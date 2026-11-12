@@ -37,6 +37,14 @@ public class V1_21_9PlayerList implements PlayerList {
     }
 
     @Override
+    public void clear(Player player) {
+        java.util.List<UUID> ids = java.util.Arrays.stream(this.profileCache)
+                .filter(java.util.Objects::nonNull).map(GameProfile::id).toList();
+        ((CraftPlayer) player).getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket(ids));
+        player.sendPlayerListHeaderAndFooter(net.kyori.adventure.text.Component.empty(), net.kyori.adventure.text.Component.empty());
+    }
+
+    @Override
     public void send(Player player, net.kyori.adventure.text.Component[] playerListCells, net.kyori.adventure.text.Component header, net.kyori.adventure.text.Component footer, SkinTexture[] cellTextures, int ping,
                      Set<Integer> forceUpdateSlots) {
         List<Packet<?>> packets = Lists.newArrayList();

@@ -81,8 +81,8 @@ dni**) — po jej upływie zostaje automatycznie usunięta.
 Ważność przedłuża komenda `/przedluz`: dodaje `validity-time` (domyślnie 14
 dni) i kosztuje `validity-items` (domyślnie 10 diamentów). Można jej użyć
 dopiero, gdy do wygaśnięcia zostało mniej niż `validity-when` (domyślnie 14
-dni — tyle samo, co ważność nowej gildii) — ustawienie `0` całkowicie wyłącza
-możliwość przedłużania.
+dni — tyle samo, co ważność nowej gildii) — ustawienie `0` usuwa ograniczenie
+czasowe przedłużania.
 
 ## Rozwiązanie gildii
 
@@ -98,3 +98,7 @@ dopóki na terenie gildii przebywa ktoś spoza niej.
   `/statsreset`, patrz [Rankingi i walka](/rankings-combat/).
 - `player-lookup-ignorecase` — czy wyszukiwanie graczy po nicku ignoruje wielkość liter.
 :::
+
+### Potwierdzenie usunięcia i bany
+
+Potwierdzenie usunięcia jest ważne przez **60 sekund**, dotyczy gildii wskazanej przy `/usun` i znika po rozłączeniu lub zmianie członkostwa. Po wygaśnięciu ponów `/usun`. Odbanowanie gildii usuwa ban gildii i jej członków; zdjęty ban gracza nie wraca po zapisie FLAT i restarcie.

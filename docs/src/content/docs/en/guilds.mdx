@@ -82,7 +82,7 @@ automatically.
 `/przedluz` extends it by `validity-time` (14 days by default) at a cost of
 `validity-items` (10 diamonds by default). It can only be used once less than
 `validity-when` remains before expiry (14 days by default — the same as a new
-guild's validity); setting it to `0` disables renewal entirely.
+guild's validity); setting it to `0` removes the time restriction on renewal.
 
 ## Disbanding a guild
 
@@ -97,3 +97,7 @@ someone from outside the guild is standing on its territory.
   `/rankreset` and `/statsreset`, see [Rankings & combat](/en/rankings-combat/).
 - `player-lookup-ignorecase` — whether looking up players by name ignores case.
 :::
+
+### Deletion confirmation and bans
+
+Deletion confirmation is valid for **60 seconds**, applies to the guild for which `/usun` was issued, and is cleared on disconnect or membership change. Use `/usun` again after it expires. Lifting a guild ban clears both the guild ban and its member bans; an unbanned player stays unbanned after saving FLAT data and restarting.

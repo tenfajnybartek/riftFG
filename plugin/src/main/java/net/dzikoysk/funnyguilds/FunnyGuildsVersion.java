@@ -12,9 +12,9 @@ public final class FunnyGuildsVersion {
 
     private static final Gson GSON = new Gson();
 
-    private static final String GH_COMMITS_URL = "https://api.github.com/repos/FunnyGuilds/FunnyGuilds/commits";
+    private static final String GH_COMMITS_URL = "https://api.github.com/repos/FunnyGuilds/FunnyGuilds/commits?sha=5.x&per_page=1";
     private static final String VERSION_FILE_URL = "https://funnyguilds.dzikoysk.net/latest.info";
-    private static final String NIGHTLY_VERSION_FILE_URL = "https://raw.githubusercontent.com/FunnyGuilds/FunnyGuilds/master/updater-nightly.txt";
+    private static final String NIGHTLY_VERSION_FILE_URL = "https://raw.githubusercontent.com/FunnyGuilds/FunnyGuilds/5.x/updater-nightly.txt";
     private static final String GITHUB_URL = "https://github.com/funnyguilds/funnyguilds";
     private static final String DISCORD_URL = "https://discord.com/invite/CYvyq3u";
 

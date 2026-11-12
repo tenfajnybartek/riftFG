@@ -137,3 +137,7 @@ guild heart — it detects suspicious reach (`reach.survival-reach`/`creative-re
 with a `reach.compensation` margin) and freecam. Once a player exceeds
 `max-violations` violations within 10 minutes, they lose the ability to
 interact with the guild heart.
+
+## Base teleport costs
+
+`/baza` validates the cost when started and again when the countdown finishes. Items are charged only at that final step. Moving or disconnecting during the countdown consumes no items. If another plugin rejects the teleport, the cost is returned; items that do not fit in the inventory are dropped at the player. Success is reported only for a completed teleport.

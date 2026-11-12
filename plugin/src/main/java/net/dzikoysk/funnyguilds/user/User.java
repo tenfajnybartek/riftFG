@@ -43,6 +43,8 @@ public class User extends AbstractMutableEntity {
 
     void setName(String name) {
         this.name = name;
+        this.markChanged();
+        this.guild.peek(Guild::markChanged);
     }
 
     @Override
@@ -91,11 +93,13 @@ public class User extends AbstractMutableEntity {
     }
 
     public void setGuild(@Nullable Guild guild) {
+        net.dzikoysk.funnyguilds.data.util.ConfirmationList.remove(this.uuid);
         this.guild = Option.of(guild);
         this.markChanged();
     }
 
     public void removeGuild() {
+        net.dzikoysk.funnyguilds.data.util.ConfirmationList.remove(this.uuid);
         this.guild = Option.none();
         this.markChanged();
     }

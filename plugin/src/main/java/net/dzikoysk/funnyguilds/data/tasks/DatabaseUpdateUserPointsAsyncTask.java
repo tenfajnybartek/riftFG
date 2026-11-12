@@ -1,10 +1,11 @@
 package net.dzikoysk.funnyguilds.data.tasks;
 
 import net.dzikoysk.funnyguilds.data.database.serializer.DatabaseUserSerializer;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
+import net.dzikoysk.funnyguilds.FunnyGuilds;
 import net.dzikoysk.funnyguilds.user.User;
 
-public class DatabaseUpdateUserPointsAsyncTask extends AsyncFunnyTask {
+public class DatabaseUpdateUserPointsAsyncTask extends SyncFunnyTask {
 
     private final User user;
 
@@ -14,7 +15,7 @@ public class DatabaseUpdateUserPointsAsyncTask extends AsyncFunnyTask {
 
     @Override
     public void execute() {
-        DatabaseUserSerializer.updatePoints(this.user);
+        FunnyGuilds.getInstance().getDataPersistenceHandler().requestSave();
     }
 
 }

@@ -9,7 +9,7 @@ The configuration shown here uses the syntax introduced in FunnyGuilds v4.11.0+.
 
 ## The server's player list
 
-The player list — or "tablist" — shows information about the guild, the player, the server and the top lists. Its appearance is configured in the `tablist.yml` and `messages.yml` files; every setting related to it is described below.
+The player list — or "tablist" — shows information about the guild, the player, the server and the top lists. Its appearance is configured in the `tablist.yml` and `lang/*.yml` files; every setting related to it is described below.
 
 :::caution[Reloading the configuration]
 After changing the configuration, do not use `/reload` — reload the plugin with `/funnyguilds reload`, or restart the server.
@@ -93,7 +93,7 @@ pages:
 
 ---
 
-## "No value" messages (`messages.yml`)
+## "No value" messages (`lang/*.yml`)
 
 This section sets the messages shown in place of missing values — when a player has no guild, a top list entry is empty, a guild has no allies or deputies, and so on.
 
@@ -194,3 +194,7 @@ You'll find the full list of available placeholders and their corresponding comm
 - `Slot X` — row no. X
 
 <img src="https://imgur.com/eJ1sgRg.png" width="80%" alt="List layout scheme" />
+
+## Validation and reload
+
+Cell numbers and texture ranges must be within **1–80**. Animated tablists require at least one page and positive page cycles; update intervals must be positive. Invalid settings are rejected before replacing the active configuration. Disabling or rebuilding the tablist removes its old entries and header/footer. Disabling the FunnyGuilds scoreboard removes its teams and dummy objective.

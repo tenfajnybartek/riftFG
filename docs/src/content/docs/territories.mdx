@@ -134,3 +134,7 @@ gildii — wykrywa podejrzany zasięg (`reach.survival-reach`/`creative-reach`,
 z marginesem `reach.compensation`) oraz freecam. Po przekroczeniu
 `max-violations` naruszeń w ciągu 10 minut gracz traci możliwość interakcji z
 sercem gildii.
+
+## Koszt teleportacji do bazy
+
+`/baza` sprawdza koszt na początku i ponownie na końcu odliczania. Przedmioty są pobierane dopiero przy finalizacji. Ruch lub rozłączenie w czasie odliczania nie zużywają przedmiotów. Jeśli inny plugin odrzuci teleport, koszt jest zwracany; przedmioty niemieszczące się w ekwipunku wypadają przy graczu. Komunikat sukcesu pojawia się wyłącznie po udanym teleporcie.

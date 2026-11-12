@@ -11,9 +11,9 @@ import net.dzikoysk.funnyguilds.data.flat.seralizer.FlatGuildSerializer;
 import net.dzikoysk.funnyguilds.data.flat.seralizer.FlatRegionSerializer;
 import net.dzikoysk.funnyguilds.data.flat.seralizer.FlatUserSerializer;
 import net.dzikoysk.funnyguilds.guild.Guild;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
 
-public class DatabaseUpdateGuildAsyncTask extends AsyncFunnyTask {
+public class DatabaseUpdateGuildAsyncTask extends SyncFunnyTask {
 
     private final DataModel dataModel;
     private final Guild guild;
@@ -25,21 +25,7 @@ public class DatabaseUpdateGuildAsyncTask extends AsyncFunnyTask {
 
     @Override
     public void execute() {
-        try {
-            if (this.dataModel instanceof SQLDataModel) {
-                DatabaseGuildSerializer.serialize(this.guild);
-                this.guild.getRegion().peek(DatabaseRegionSerializer::serialize);
-                this.guild.getMembers().forEach(DatabaseUserSerializer::serialize);
-            }
-            else if (this.dataModel instanceof FlatDataModel) {
-                FlatGuildSerializer.serialize(this.guild);
-                this.guild.getRegion().peek(FlatRegionSerializer::serialize);
-                this.guild.getMembers().forEach(FlatUserSerializer::serialize);
-            }
-        }
-        catch (Exception exception) {
-            FunnyGuilds.getPluginLogger().error("Could not update guild", exception);
-        }
+        FunnyGuilds.getInstance().getDataPersistenceHandler().requestSave();
     }
 
 }

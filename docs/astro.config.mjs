@@ -11,7 +11,7 @@ export default defineConfig({
     starlight({
       title: 'FunnyGuilds',
       description:
-        'Rozbudowany, w pełni konfigurowalny plugin RPG do gildii dla serwerów Minecraft (Paper 1.8–1.21.x).',
+        'Rozbudowany, w pełni konfigurowalny plugin RPG do gildii dla serwerów Minecraft (Paper; wersje i wymagania zależą od wydania).',
       logo: {
         // Same mark as the landing nav's inline SVG in Landing.astro.
         src: './src/assets/logo.svg',

@@ -8,6 +8,7 @@ import java.time.Instant;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -143,7 +144,7 @@ public class PlayerDeath extends AbstractFunnyListener {
         }
 
         if (this.checkAllyRankChangeProtection(victim, attacker)) {
-            attackerDamageState.clear();
+            victimDamageState.clear();
             event.deathMessage(null);
             return;
         }
@@ -553,7 +554,7 @@ public class PlayerDeath extends AbstractFunnyListener {
             return calculatedAssists;
         }
 
-        Map<User, Double> damageMap = new HashMap<>(victimDamageState.getSortedTotalDamageMap());
+        Map<User, Double> damageMap = new LinkedHashMap<>(victimDamageState.getSortedTotalDamageMap());
         damageMap.remove(attacker);
 
         double toShare = result.getAttackerPoints() * (1 - this.config.assistKillerShare);

@@ -2,6 +2,7 @@ package net.dzikoysk.funnyguilds.user;
 
 import java.util.function.IntFunction;
 import net.dzikoysk.funnyguilds.rank.Rank;
+import net.dzikoysk.funnyguilds.guild.Guild;
 import net.dzikoysk.funnyguilds.user.top.UserComparator;
 import org.jetbrains.annotations.NotNull;
 
@@ -30,6 +31,7 @@ public class UserRank extends Rank<User> implements Comparable<UserRank> {
     public void setPoints(int points) {
         this.points = Math.max(0, points);
         this.entity.markChanged();
+        this.entity.getGuild().peek(Guild::markChanged);
     }
 
     public void updatePoints(IntFunction<Integer> update) {

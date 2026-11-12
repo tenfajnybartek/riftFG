@@ -44,14 +44,9 @@ public final class BaseCommand extends AbstractFunnyCommand {
             return;
         }
 
-        ItemStack[] items = ItemUtils.toArray(requiredItems);
-        player.getInventory().removeItem(items);
 
         if (this.config.baseDelay.isZero()) {
-            guild.teleportHome(player);
-            this.messageService.getMessage(config -> config.baseTeleport)
-                    .receiver(member)
-                    .send();
+            this.completeTeleport(player, member, guild, requiredItems);
             return;
         }
 
@@ -76,16 +71,12 @@ public final class BaseCommand extends AbstractFunnyCommand {
                         .receiver(member)
                         .send();
                 cache.setTeleportation(null);
-                player.getInventory().addItem(items);
                 return;
             }
 
-            if (Duration.between(teleportStart, Instant.now()).compareTo(time) > 0) {
+            if (Duration.between(teleportStart, Instant.now()).compareTo(time) >= 0) {
                 cache.getTeleportation().cancel();
-                this.messageService.getMessage(config -> config.baseTeleport)
-                        .receiver(member)
-                        .send();
-                guild.teleportHome(player);
+                this.completeTeleport(player, member, guild, requiredItems);
                 cache.setTeleportation(null);
             }
         }, 0L, 10L));
@@ -94,6 +85,29 @@ public final class BaseCommand extends AbstractFunnyCommand {
                 .receiver(member)
                 .with("{TIME}", time.getSeconds())
                 .send();
+    }
+
+    private void completeTeleport(Player player, User member, Guild guild, List<ItemStack> cost) {
+        if (!member.getGuild().contentEquals(guild) || this.guildManager.findByUuid(guild.getUUID()).isEmpty()
+                || !guild.hasHome() || !ItemUtils.playerHasEnoughItems(player, cost, config -> config.baseItems)) {
+            return;
+        }
+        if (!ItemUtils.takeItems(player, cost)) {
+            return;
+        }
+        boolean teleported;
+        try {
+            teleported = player.isOnline() && player.teleport(guild.getHome().get());
+        }
+        catch (RuntimeException exception) {
+            ItemUtils.returnItems(player, ItemUtils.toArray(cost));
+            throw exception;
+        }
+        if (!teleported) {
+            ItemUtils.returnItems(player, ItemUtils.toArray(cost));
+            return;
+        }
+        this.messageService.getMessage(config -> config.baseTeleport).receiver(member).send();
     }
 
 }

@@ -85,6 +85,7 @@ public class SQLDataModel implements DataModel {
         this.guildsTable.add("last_war", SQLType.TEXT);
         this.guildsTable.add("war_streak", SQLType.INT);
         this.guildsTable.add("last_life_buy", SQLType.BIGINT);
+        this.guildsTable.add("life_gain_cooldowns", SQLType.TEXT);
         this.guildsTable.setPrimaryKey("uuid");
 
         this.regionsTable.add("name", SQLType.VARCHAR, 100, true);
@@ -106,9 +107,11 @@ public class SQLDataModel implements DataModel {
             migrateSchema(connection, this.guildsTable);
         }
 
+        net.dzikoysk.funnyguilds.data.PendingDeletion.replay(this.plugin, this);
         this.loadUsers();
         this.loadRegions();
         this.loadGuilds();
+        this.validateLoadedData();
 
         this.plugin.getIndividualNameTagManager().map(ScoreboardGlobalUpdateSyncTask::new).peek(this.plugin::scheduleFunnyTasks);
     }
@@ -119,11 +122,12 @@ public class SQLDataModel implements DataModel {
                 String userName = result.getString("name");
 
                 if (FunnyValidator.validateUsername(this.pluginConfiguration, userName) != NameResult.VALID) {
-                    FunnyGuilds.getPluginLogger().warning("Skipping loading of user '" + userName + "' - name is invalid");
-                    continue;
+                    throw new SQLException("Invalid user name in database: " + userName);
                 }
 
-                DatabaseUserSerializer.deserialize(result);
+                if (DatabaseUserSerializer.deserialize(result).isEmpty()) {
+                    throw new SQLException("Invalid user row; no data was modified");
+                }
             }
         });
 
@@ -135,7 +139,9 @@ public class SQLDataModel implements DataModel {
 
         SQLBasicUtils.getSelectAll(this.guildsTable).executeQuery(resultAll -> {
             while (resultAll.next()) {
-                DatabaseGuildSerializer.deserialize(resultAll);
+                if (DatabaseGuildSerializer.deserialize(resultAll).isEmpty()) {
+                    throw new SQLException("Invalid guild row; no data was modified");
+                }
             }
         });
 
@@ -162,7 +168,7 @@ public class SQLDataModel implements DataModel {
 
         guildManager.getGuilds().stream()
                 .filter(guild -> guild.getOwner() == null)
-                .forEach(guild -> guildManager.deleteGuild(FunnyGuilds.getInstance(), guild));
+                .forEach(guild -> { throw new IllegalStateException("Guild has no owner: " + guild.getName()); });
 
         FunnyGuilds.getPluginLogger().info("Loaded guilds: " + guildManager.countGuilds());
     }
@@ -177,7 +183,9 @@ public class SQLDataModel implements DataModel {
 
         SQLBasicUtils.getSelectAll(this.regionsTable).executeQuery(result -> {
             while (result.next()) {
-                DatabaseRegionSerializer.deserialize(result).peek(regionManager::addRegion);
+                if (DatabaseRegionSerializer.deserialize(result).peek(regionManager::addRegion).isEmpty()) {
+                    throw new SQLException("Invalid region row; no data was modified");
+                }
             }
         });
 
@@ -186,25 +194,18 @@ public class SQLDataModel implements DataModel {
 
     @Override
     public void save(boolean ignoreNotChanged) {
-        this.plugin.getUserManager().getUsers().stream()
-                .filter(user -> !ignoreNotChanged || user.wasChanged())
-                .forEach(DatabaseUserSerializer::serialize);
-
-        this.plugin.getGuildManager().getGuilds().stream()
-                .filter(guild -> !ignoreNotChanged || guild.wasChanged())
-                .forEach(DatabaseGuildSerializer::serialize);
-
-        if (!this.plugin.getPluginConfiguration().regionsEnabled) {
-            return;
-        }
-
-        this.plugin.getRegionManager().getRegions().stream()
-                .filter(region -> !ignoreNotChanged || region.wasChanged())
-                .forEach(DatabaseRegionSerializer::serialize);
+        this.prepareSave(ignoreNotChanged).run();
     }
 
     public SQLTable getUsersTable() {
         return this.usersTable;
+    }
+
+    @Override
+    public Runnable prepareSave(boolean ignoreNotChanged) {
+        Runnable snapshot = DataModel.super.prepareSave(ignoreNotChanged);
+        Database database = this.plugin.getDatabase().get();
+        return () -> database.transaction(snapshot);
     }
 
     public SQLTable getGuildsTable() {

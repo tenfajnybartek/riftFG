@@ -9,7 +9,7 @@ Przedstawiona konfiguracja korzysta ze składni wprowadzonej w FunnyGuilds v4.11
 
 ## Lista graczy na serwerze
 
-Lista graczy, inaczej „tablista", pokazuje informacje o gildii, graczu, serwerze i topkach. Jej wygląd konfiguruje się w plikach `tablist.yml` oraz `messages.yml`; poniżej opisano wszystkie dotyczące jej ustawienia.
+Lista graczy, inaczej „tablista", pokazuje informacje o gildii, graczu, serwerze i topkach. Jej wygląd konfiguruje się w plikach `tablist.yml` oraz `lang/*.yml`; poniżej opisano wszystkie dotyczące jej ustawienia.
 
 :::caution[Przeładowanie konfiguracji]
 Po zmianie konfiguracji nie używaj `/reload` — przeładuj plugin komendą `/funnyguilds reload` albo zrestartuj serwer.
@@ -93,7 +93,7 @@ pages:
 
 ---
 
-## Informacja o „braku" (`messages.yml`)
+## Informacja o „braku" (`lang/*.yml`)
 
 Sekcja ustala komunikaty wyświetlane w miejsce brakujących wartości — gdy gracz nie ma gildii, topka jest pusta, gildia nie ma sojuszników czy zastępców itd.
 
@@ -194,3 +194,7 @@ Pełną listę dostępnych znaczników i odpowiadających im komend znajdziesz n
 - `Slot X` — wiersz nr X
 
 <img src="https://imgur.com/eJ1sgRg.png" width="80%" alt="Schemat wyglądu listy" />
+
+## Walidacja i reload
+
+Numery komórek i zakresy tekstur muszą mieścić się w **1–80**. Animowana tablista wymaga co najmniej jednej strony i dodatniej liczby cykli; interwał odświeżania musi być dodatni. Błędne ustawienia są odrzucane przed podmianą aktywnej konfiguracji. Wyłączenie lub przebudowa tablisty usuwa jej stare wpisy oraz nagłówek i stopkę. Wyłączenie scoreboardu FunnyGuilds usuwa jego teamy i objective punktów.

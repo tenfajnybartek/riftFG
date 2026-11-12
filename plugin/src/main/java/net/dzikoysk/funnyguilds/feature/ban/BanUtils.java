@@ -30,6 +30,7 @@ public final class BanUtils {
     }
 
     public static void unban(Guild guild) {
+        guild.setBan(null);
         guild.getMembers().forEach(BanUtils::unban);
     }
 

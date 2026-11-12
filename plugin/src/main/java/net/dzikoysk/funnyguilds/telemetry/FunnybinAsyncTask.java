@@ -82,7 +82,11 @@ public final class FunnybinAsyncTask extends AsyncFunnyTask {
 
             if (content == null && file != null) {
                 try {
-                    content = Files.asCharSource(file, StandardCharsets.UTF_8).read();
+                    try (java.io.InputStream input = java.nio.file.Files.newInputStream(file.toPath())) {
+                        byte[] bytes = input.readNBytes(8 * 1024 * 1024 + 1);
+                        if (bytes.length > 8 * 1024 * 1024) { throw new IOException("File exceeds 8 MiB"); }
+                        content = new String(bytes, StandardCharsets.UTF_8);
+                    }
                 }
                 catch (FileNotFoundException e) {
                     messageService.getMessage(config -> config.funnybinFileNotFound)
@@ -163,7 +167,7 @@ public final class FunnybinAsyncTask extends AsyncFunnyTask {
                     return new FunnybinAsyncTask(sender, Collections.singletonList("log"));
                 case "custom":
                     if (args.length >= 3) {
-                        new FunnybinAsyncTask(sender, Collections.singletonList(args[2]));
+                        return new FunnybinAsyncTask(sender, Collections.singletonList(args[2]));
                     }
 
                     break;

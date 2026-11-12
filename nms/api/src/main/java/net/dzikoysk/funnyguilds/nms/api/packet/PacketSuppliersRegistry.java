@@ -4,14 +4,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.CopyOnWriteArrayList;
 import net.dzikoysk.funnyguilds.nms.api.entity.FakeEntity;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 public class PacketSuppliersRegistry implements PacketSuppliers {
 
-    private Player owner;
-    private final List<PacketSuppliers> packetSuppliers = new ArrayList<>();
+    private volatile Player owner;
+    private final List<PacketSuppliers> packetSuppliers = new CopyOnWriteArrayList<>();
 
     public Player getOwner() {
         return this.owner;
@@ -35,7 +36,8 @@ public class PacketSuppliersRegistry implements PacketSuppliers {
     }
 
     public Set<FakeEntity> supplyFakeEntities(int chunkX, int chunkZ) {
-        return this.supplyFakeEntities(this.owner.getWorld(), chunkX, chunkZ);
+        Player currentOwner = this.owner;
+        return currentOwner == null ? Set.of() : this.supplyFakeEntities(currentOwner.getWorld(), chunkX, chunkZ);
     }
 
 }

@@ -43,6 +43,11 @@ public final class NmsAccessorHolder {
         try {
             Method getDataVersion = UnsafeValues.class.getMethod("getDataVersion");
             int dataVersion = (int) getDataVersion.invoke(Bukkit.getServer().getUnsafe());
+            if (dataVersion > NMS_VERSION_MAPPING.lastKey()) {
+                Bukkit.getLogger().warning("[FunnyGuilds] Server data version " + dataVersion
+                        + " is newer than the latest adapter baseline " + NMS_VERSION_MAPPING.lastKey()
+                        + "; compatibility is not verified. Report any NMS errors with the exact server build.");
+            }
             Map.Entry<Integer, String> versionEntry = NMS_VERSION_MAPPING.floorEntry(dataVersion);
             return versionEntry != null ? versionEntry.getValue() : null;
         } catch(NoSuchMethodException | IllegalAccessException | InvocationTargetException ex) {

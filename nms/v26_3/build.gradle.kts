@@ -3,7 +3,7 @@ import org.gradle.jvm.toolchain.JavaLanguageVersion
 dependencies {
     implementation(project(":nms:api"))
     api(project(":nms:v26_1_1"))
-    paperweight.paperDevBundle("26.3.build.+")
+    paperweight.paperDevBundle("26.3.build.249-stable")
 }
 
 java {

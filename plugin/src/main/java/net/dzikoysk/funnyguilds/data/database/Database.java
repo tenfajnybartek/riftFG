@@ -7,8 +7,50 @@ import net.dzikoysk.funnyguilds.shared.FunnyStringUtils;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Database {
+
+    private static final ThreadLocal<Connection> TRANSACTION = new ThreadLocal<>();
+    private static final ThreadLocal<List<Runnable>> AFTER_COMMIT = new ThreadLocal<>();
+
+    public static Connection currentTransaction() {
+        return TRANSACTION.get();
+    }
+
+    public static void afterCommit(Runnable action) {
+        List<Runnable> callbacks = AFTER_COMMIT.get();
+        if (callbacks == null) { action.run(); }
+        else { callbacks.add(action); }
+    }
+
+    public void transaction(Runnable write) {
+        if (TRANSACTION.get() != null) { write.run(); return; }
+        try (Connection connection = this.getConnection()) {
+            connection.setAutoCommit(false);
+            List<Runnable> callbacks = new ArrayList<>();
+            TRANSACTION.set(connection);
+            AFTER_COMMIT.set(callbacks);
+            try {
+                write.run();
+                connection.commit();
+                callbacks.forEach(Runnable::run);
+            }
+            catch (RuntimeException | SQLException exception) {
+                try { connection.rollback(); }
+                catch (SQLException rollbackFailure) { exception.addSuppressed(rollbackFailure); }
+                throw new IllegalStateException("Database transaction failed; records remain dirty", exception);
+            }
+            finally {
+                TRANSACTION.remove();
+                AFTER_COMMIT.remove();
+            }
+        }
+        catch (SQLException exception) {
+            throw new IllegalStateException("Cannot open database transaction", exception);
+        }
+    }
 
     private final HikariDataSource dataSource;
 
@@ -29,7 +71,7 @@ public class Database {
         this.dataSource.setMaximumPoolSize(poolSize);
         this.dataSource.setConnectionTimeout(c.connectionTimeout);
 
-        this.dataSource.setJdbcUrl("jdbc:" + FunnyGuilds.getInstance().getPluginConfiguration().dataModel.name().toLowerCase() + "://" + c.hostname + ":" + c.port + "/" + c.database + "?useSSL=" + c.useSSL + characterEncoding);
+        this.dataSource.setJdbcUrl("jdbc:mariadb://" + c.hostname + ":" + c.port + "/" + c.database + "?useSSL=" + c.useSSL + characterEncoding);
         this.dataSource.setUsername(c.user);
 
         if (!FunnyStringUtils.isEmpty(c.password)) {

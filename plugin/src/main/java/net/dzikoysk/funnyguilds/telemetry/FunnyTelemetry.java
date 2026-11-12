@@ -2,6 +2,8 @@ package net.dzikoysk.funnyguilds.telemetry;
 
 import com.google.gson.Gson;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -46,23 +48,41 @@ public final class FunnyTelemetry {
     }
 
     private static <T> T sendPost(String url, String body, Class<T> response) throws IOException {
-        System.setProperty("jdk.tls.client.protocols", "TLSv1,TLSv1.1,TLSv1.2");
-        System.setProperty("https.protocols", "TLSv1,TLSv1.1,TLSv1.2");
-
-        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
-        connection.setRequestMethod("POST");
-        connection.setDoInput(true);
-        connection.setDoOutput(true);
-
         byte[] bodyBytes = body.getBytes(StandardCharsets.UTF_8);
-        connection.addRequestProperty("User-Agent", "FunnyGuilds");
-        connection.addRequestProperty("Content-Type", "text/plain");
-        connection.setRequestProperty("Content-Length", String.valueOf(bodyBytes.length));
-        connection.getOutputStream().write(bodyBytes);
-
-        return IOUtils.convertStreamToString(connection.getInputStream(), StandardCharsets.UTF_8)
-                .map(input -> gson.fromJson(input, response))
-                .orThrow(exception -> exception);
+        if (bodyBytes.length > 8 * 1024 * 1024) {
+            throw new IOException("Paste exceeds 8 MiB");
+        }
+        HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+        try {
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
+            connection.setInstanceFollowRedirects(false);
+            connection.setRequestMethod("POST");
+            connection.setDoOutput(true);
+            connection.setRequestProperty("User-Agent", "FunnyGuilds");
+            connection.setRequestProperty("Content-Type", "text/plain; charset=UTF-8");
+            connection.setFixedLengthStreamingMode(bodyBytes.length);
+            try (OutputStream output = connection.getOutputStream()) {
+                output.write(bodyBytes);
+            }
+            int status = connection.getResponseCode();
+            if (status < 200 || status >= 300) {
+                throw new IOException("FunnyTelemetry returned HTTP " + status);
+            }
+            try (InputStream input = connection.getInputStream()) {
+                byte[] bytes = input.readNBytes(1024 * 1024 + 1);
+                if (bytes.length > 1024 * 1024) { throw new IOException("Telemetry response exceeds 1 MiB"); }
+                T result = gson.fromJson(new String(bytes, StandardCharsets.UTF_8), response);
+                if (result == null) { throw new IOException("Empty telemetry response"); }
+                return result;
+            }
+            catch (com.google.gson.JsonParseException exception) {
+                throw new IOException("Invalid telemetry response", exception);
+            }
+        }
+        finally {
+            connection.disconnect();
+        }
     }
 
     private static String encodeUTF8(String str) throws UnsupportedEncodingException {

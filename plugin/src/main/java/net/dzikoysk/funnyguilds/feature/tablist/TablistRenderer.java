@@ -83,6 +83,14 @@ public class TablistRenderer {
         }
     }
 
+    public void close() {
+        this.playerLists.forEach((uuid, list) -> {
+            Player player = Bukkit.getPlayer(uuid);
+            if (player != null) { list.clear(player); }
+        });
+        this.playerLists.clear();
+    }
+
     public void broadcast() {
         this.createUnformattedCellsAndRun((currentUnformattedCells, currentHeader, currentFooter) -> {
             // Don't remove this toArray - iterating over online players asynchronously without shallow copy could 

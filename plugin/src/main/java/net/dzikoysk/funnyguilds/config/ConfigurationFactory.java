@@ -71,6 +71,7 @@ public final class ConfigurationFactory {
             });
             it.saveDefaults();
             it.load(true);
+            ConfigurationValidation.validate((PluginConfiguration) it);
         });
     }
 
@@ -88,6 +89,7 @@ public final class ConfigurationFactory {
             });
             it.saveDefaults();
             it.load(true);
+            ConfigurationValidation.validate((ItemsConfiguration) it);
         });
     }
 
@@ -108,6 +110,7 @@ public final class ConfigurationFactory {
             });
             it.saveDefaults();
             it.load(true);
+            ConfigurationValidation.validate((TablistConfiguration) it);
         });
     }
 

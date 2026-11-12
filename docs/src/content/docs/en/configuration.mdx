@@ -88,3 +88,23 @@ held permissions.
 
 2\* — the ranking value only needs to be given in contexts such as creating a
 guild or joining one.
+
+## Reload and restart
+
+`/funnyguilds reload` validates `config.yml`, `items.yml`, `tablist.yml` and existing locale files before applying values on the main thread. It restarts persistence, invitations and ranking timers and reconfigures dynamic protection listeners. A validation failure keeps the previous runtime settings.
+
+Changes to these settings require a **server restart**; reload reports the changed section and refuses to apply the configuration:
+
+- `data-model`, `mysql`, `commands`;
+- `regions-enabled`, `heart`, `region-size`, `enlarge-size`, `enlarge-items`;
+- `default-locale`, `available-locales`, `disabled-hooks`.
+
+Do not use the server `/reload` command.
+
+## Saving and recovery
+
+Autosave and `/funnyguilds save-all` write captured data through one persistence queue. Failed records are retried without clearing their pending changes; save-all reports success only after the write finishes. SQL snapshots use transactions. Both `MYSQL` and `MARIADB` use the bundled MariaDB JDBC driver; an external MySQL driver is not required.
+
+FLAT files are replaced through a temporary file; the preceding content is kept in a `.bak` file. Backup and temporary files are not loaded as entities. An invalid entity file or a failed SQL read stops startup without automatically deleting inconsistent guilds or regions. Preserve the data and check the logged file/record before repairing it. The internal `data/pending-deletions.yml` journal resumes explicitly requested deletions interrupted by a failure; it is not a general automatic repair operation.
+
+Diagnostic uploads through `/funnyguilds funnybin` have an **8 MiB per-file limit** and network timeouts. The `config` variant masks database connection credentials; logs and custom files can contain sensitive information, so review those files before invoking an upload.

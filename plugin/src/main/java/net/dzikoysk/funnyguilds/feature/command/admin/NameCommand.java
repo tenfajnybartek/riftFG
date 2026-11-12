@@ -34,6 +34,7 @@ public final class NameCommand extends AbstractFunnyCommand {
         when(args.length < 2, config -> config.adminNoNewNameGiven);
 
         Guild guild = GuildValidation.requireGuildByTag(args[0]);
+        when(!this.config.nameRegex.matches(args[1]) || args[1].length() < this.config.createNameMinLength || args[1].length() > this.config.createNameLength, config -> config.createOLName);
         when(this.guildManager.nameExists(args[1]), config -> config.createNameExists);
 
         User admin = AdminUtils.getAdminUser(sender);
@@ -43,27 +44,27 @@ public final class NameCommand extends AbstractFunnyCommand {
             return;
         }
 
-        guild.getRegion().peek(region -> {
-            if (this.dataModel instanceof FlatDataModel) {
-                FlatDataModel dataModel = (FlatDataModel) this.dataModel;
-                dataModel.getRegionFile(region).peek(FunnyIOUtils::deleteFile);
-            }
-            else if (this.dataModel instanceof SQLDataModel) {
-                DatabaseRegionSerializer.delete(region);
-            }
-
-            region.setName(args[1]);
-        });
-
-        if (this.dataModel instanceof FlatDataModel) {
-            FlatDataModel dataModel = (FlatDataModel) this.dataModel;
-            dataModel.getGuildFile(guild).peek(FunnyIOUtils::deleteFile);
-        }
-        else if (this.dataModel instanceof SQLDataModel) {
-            DatabaseGuildSerializer.delete(guild);
-        }
-
+        String oldRegion = guild.getRegion().map(net.dzikoysk.funnyguilds.guild.Region::getName).orNull();
+        Runnable removeOldRegion = this.dataModel instanceof SQLDataModel
+                ? guild.getRegion().map(DatabaseRegionSerializer::prepareDelete).orElseGet(() -> {})
+                : () -> {};
+        guild.getRegion().peek(region -> region.setName(args[1]));
         guild.setName(args[1]);
+        Runnable snapshot = this.dataModel.prepareSave(false);
+        if (this.dataModel instanceof SQLDataModel) {
+            this.plugin.getDataPersistenceHandler().submitWrite(() -> this.plugin.getDatabase().get().transaction(() -> {
+                snapshot.run();
+                removeOldRegion.run();
+            }));
+        }
+        else {
+            Runnable removeOldFiles = net.dzikoysk.funnyguilds.data.PendingDeletion.prepare(
+                    this.plugin, "guild", guild.getUUID().toString(), oldName, oldRegion);
+            this.plugin.getDataPersistenceHandler().submitWrite(() -> {
+                snapshot.run();
+                removeOldFiles.run();
+            });
+        }
         this.messageService.getMessage(config -> config.adminNameChanged)
                 .with("{GUILD}", guild.getName())
                 .receiver(sender)

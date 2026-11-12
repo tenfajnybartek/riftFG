@@ -14,11 +14,15 @@ on:
     branches: [ 5.x ]
     paths:
       - 'docs/**'
+      - 'plugin/src/**'
+      - 'nms/**'
       - '.github/workflows/docs.yml'
   pull_request:
     branches: [ 5.x ]
     paths:
       - 'docs/**'
+      - 'plugin/src/**'
+      - 'nms/**'
       - '.github/workflows/docs.yml'
   workflow_dispatch:
 

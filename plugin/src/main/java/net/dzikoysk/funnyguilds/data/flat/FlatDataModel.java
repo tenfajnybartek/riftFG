@@ -66,13 +66,12 @@ public class FlatDataModel implements DataModel {
             return Option.none();
         }
 
-        Result<File, String> createResult = FunnyIOUtils.createFile(new File(fileFolder, name + ".yml"), false);
-        if (createResult.isErr()) {
-            FunnyGuilds.getPluginLogger().error(createResult.getError());
-            return Option.none();
+        java.nio.file.Path directory = fileFolder.toPath().toAbsolutePath().normalize();
+        java.nio.file.Path target = directory.resolve(name + ".yml").normalize();
+        if (!directory.equals(target.getParent())) {
+            throw new IllegalArgumentException("Invalid data file name: " + name);
         }
-
-        return Option.of(createResult.get());
+        return Option.of(target.toFile());
     }
 
     public Option<File> getUserFile(User user) {
@@ -89,6 +88,7 @@ public class FlatDataModel implements DataModel {
 
     @Override
     public void load() {
+        net.dzikoysk.funnyguilds.data.PendingDeletion.replay(this.plugin, this);
         this.loadUsers();
         this.loadRegions();
         this.loadGuilds();
@@ -98,9 +98,7 @@ public class FlatDataModel implements DataModel {
 
     @Override
     public void save(boolean ignoreNotChanged) {
-        this.saveUsers(ignoreNotChanged);
-        this.saveRegions(ignoreNotChanged);
-        this.saveGuilds(ignoreNotChanged);
+        this.prepareSave(ignoreNotChanged).run();
     }
 
     private void loadUsers() {
@@ -108,6 +106,9 @@ public class FlatDataModel implements DataModel {
         userManager.clearUsers();
 
         File[] userFiles = this.usersFolderFile.listFiles();
+        if (userFiles == null && this.usersFolderFile.exists()) {
+            throw new IllegalStateException("Cannot read data directory: " + this.usersFolderFile);
+        }
         if (userFiles == null || userFiles.length == 0) {
             FunnyGuilds.getPluginLogger().info("No users to load");
             return;
@@ -115,36 +116,18 @@ public class FlatDataModel implements DataModel {
 
         AtomicInteger deserializationErrors = new AtomicInteger();
         PandaStream.of(userFiles)
-                .filter(file -> file.length() != 0)
-                .mapOpt(file -> UserUtils.checkUserFile(this.pluginConfiguration, file))
+                .filter(file -> file.isFile() && file.getName().endsWith(".yml"))
+                .map(file -> { if (file.length() == 0) { throw new IllegalStateException("Empty user file: " + file); } return file; })
+                .map(file -> UserUtils.checkUserFile(this.pluginConfiguration, file).orThrow(() -> new IllegalStateException("Cannot load user file: " + file)))
                 .forEach(file -> FlatUserSerializer.deserialize(file)
                         .onEmpty(deserializationErrors::incrementAndGet)
                 );
 
         if (deserializationErrors.get() > 0) {
-            FunnyGuilds.getPluginLogger().error("Users load errors " + deserializationErrors.get());
+            throw new IllegalStateException("Users load errors: " + deserializationErrors.get());
         }
 
         FunnyGuilds.getPluginLogger().info("Loaded users: " + this.plugin.getUserManager().countUsers());
-    }
-
-    private void saveUsers(boolean ignoreNotChanged) {
-        Set<User> users = this.plugin.getUserManager().getUsers();
-        if (users.isEmpty()) {
-            return;
-        }
-
-        AtomicInteger incorrectUsersCount = new AtomicInteger();
-        long serializationErrors = PandaStream.of(users)
-                .filter(user -> checkUser(user, incorrectUsersCount))
-                .filter(user -> !ignoreNotChanged || user.wasChanged())
-                .filterNot(FlatUserSerializer::serialize)
-                .count();
-
-        long errors = serializationErrors + incorrectUsersCount.get();
-        if (errors > 0) {
-            FunnyGuilds.getPluginLogger().error("Users save errors " + errors);
-        }
     }
 
     private void loadGuilds() {
@@ -152,6 +135,9 @@ public class FlatDataModel implements DataModel {
         guildManager.clearGuilds();
 
         File[] guildFiles = this.guildsFolderFile.listFiles();
+        if (guildFiles == null && this.guildsFolderFile.exists()) {
+            throw new IllegalStateException("Cannot read data directory: " + this.guildsFolderFile);
+        }
         if (guildFiles == null || guildFiles.length == 0) {
             FunnyGuilds.getPluginLogger().info("No guilds to load");
             return;
@@ -161,6 +147,7 @@ public class FlatDataModel implements DataModel {
         AtomicInteger ownerlessGuilds = new AtomicInteger();
 
         PandaStream.of(guildFiles)
+                .filter(file -> file.isFile() && file.getName().endsWith(".yml"))
                 .mapOpt(guildFile -> FlatGuildSerializer.deserialize(guildFile)
                         .onEmpty(incorrectGuildsCount::incrementAndGet))
                 .filter(guild -> guild.getOwner() == null)
@@ -171,29 +158,13 @@ public class FlatDataModel implements DataModel {
 
         long errors = incorrectGuildsCount.get() + ownerlessGuilds.get();
         if (errors > 0) {
-            FunnyGuilds.getPluginLogger().error("Guild load errors " + errors);
+            throw new IllegalStateException("Guild load errors: " + errors);
         }
 
         this.plugin.scheduleFunnyTasks(new DatabaseFixAlliesAsyncTask(guildManager));
         this.plugin.getIndividualNameTagManager().map(ScoreboardGlobalUpdateSyncTask::new).peek(this.plugin::scheduleFunnyTasks);
 
         FunnyGuilds.getPluginLogger().info("Loaded guilds: " + guildManager.countGuilds());
-    }
-
-    private void saveGuilds(boolean ignoreNotChanged) {
-        Set<Guild> guilds = this.plugin.getGuildManager().getGuilds();
-        if (guilds.isEmpty()) {
-            return;
-        }
-
-        long errors = PandaStream.of(guilds)
-                .filter(guild -> !ignoreNotChanged || guild.wasChanged())
-                .filterNot(FlatGuildSerializer::serialize)
-                .count();
-
-        if (errors > 0) {
-            FunnyGuilds.getPluginLogger().error("Guilds save errors: " + errors);
-        }
     }
 
     private void loadRegions() {
@@ -205,7 +176,10 @@ public class FlatDataModel implements DataModel {
         RegionManager regionManager = this.plugin.getRegionManager();
         regionManager.clearRegions();
 
-        File[] regionFiles = this.regionsFolderFile.listFiles();
+        File[] regionFiles = this.regionsFolderFile.listFiles(file -> file.isFile() && file.getName().endsWith(".yml"));
+        if (regionFiles == null && this.regionsFolderFile.exists()) {
+            throw new IllegalStateException("Cannot read data directory: " + this.regionsFolderFile);
+        }
         if (regionFiles == null || regionFiles.length == 0) {
             FunnyGuilds.getPluginLogger().info("No regions to load");
             return;
@@ -221,39 +195,10 @@ public class FlatDataModel implements DataModel {
 
         long errors = regionFiles.length - correctlyLoaded.get();
         if (errors > 0) {
-            FunnyGuilds.getPluginLogger().error("Region load errors " + errors);
+            throw new IllegalStateException("Region load errors: " + errors);
         }
 
         FunnyGuilds.getPluginLogger().info("Loaded regions: " + regionManager.countRegions());
-    }
-
-    private void saveRegions(boolean ignoreNotChanged) {
-        if (!this.plugin.getPluginConfiguration().regionsEnabled) {
-            return;
-        }
-
-        Set<Region> regions = this.plugin.getRegionManager().getRegions();
-        if (regions.isEmpty()) {
-            return;
-        }
-
-        long errors = PandaStream.of(regions)
-                .filter(region -> !ignoreNotChanged || region.wasChanged())
-                .filterNot(FlatRegionSerializer::serialize)
-                .count();
-
-        if (errors > 0) {
-            FunnyGuilds.getPluginLogger().error("Regions save errors: " + errors);
-        }
-    }
-
-    private static boolean checkUser(User user, AtomicInteger errorCounter) {
-        if (user.getUUID() == null || user.getName() == null) {
-            errorCounter.incrementAndGet();
-            return false;
-        }
-
-        return true;
     }
 
 }

@@ -1,9 +1,9 @@
 package net.dzikoysk.funnyguilds.data.database;
 
 import net.dzikoysk.funnyguilds.data.DataModel;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
 
-public class DataSaveAsyncTask extends AsyncFunnyTask {
+public class DataSaveAsyncTask extends SyncFunnyTask {
 
     private final DataModel dataModel;
     private final boolean fullSave;
@@ -15,7 +15,7 @@ public class DataSaveAsyncTask extends AsyncFunnyTask {
 
     @Override
     public void execute() {
-        this.dataModel.save(!this.fullSave);
+        net.dzikoysk.funnyguilds.FunnyGuilds.getInstance().getDataPersistenceHandler().save(this.fullSave);
     }
 
 }

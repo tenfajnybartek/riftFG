@@ -49,7 +49,7 @@ public class PlayerChat extends AbstractFunnyListener {
         }
         User user = userOption.get();
 
-        Component message = event.originalMessage();
+        Component message = event.message();
         user.getGuild()
                 .map(guild -> this.sendGuildMessage(
                         user,
@@ -210,7 +210,7 @@ public class PlayerChat extends AbstractFunnyListener {
             );
             preChatEvent.getReceivers().forEach(guild -> this.sendMessageToGuild(
                     guild,
-                    formattedMessage,
+                    preChatEvent.getFormattedMessage(),
                     type
             ));
 
@@ -219,9 +219,9 @@ public class PlayerChat extends AbstractFunnyListener {
                     user,
                     playerGuild,
                     type,
-                    receivers,
+                    preChatEvent.getReceivers(),
                     inputMessage,
-                    formattedMessage
+                    preChatEvent.getFormattedMessage()
             ));
 
             return true;

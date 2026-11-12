@@ -31,7 +31,7 @@ import java.util.logging.Logger
 open class FunnyGuildsSpec : BukkitSpec() {
 
     private lateinit var mockedFunnyGuilds: MockedStatic<FunnyGuilds>
-    private lateinit var mockedItemUtils: MockedStatic<ItemUtils>
+    protected lateinit var mockedItemUtils: MockedStatic<ItemUtils>
 
     @BeforeEach
     fun openMockedFunnyGuilds() {

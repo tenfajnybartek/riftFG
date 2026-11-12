@@ -167,7 +167,8 @@ public class FunnyGuilds extends JavaPlugin {
     private volatile Option<BukkitTask> dummyUpdateTask = Option.none();
     private volatile Option<BukkitTask> scoreboardQueueUpdateTask = Option.none();
 
-    private boolean isDisabling;
+    private boolean dataLoaded;
+    private volatile boolean isDisabling;
     private boolean forceDisabling;
 
     @Override
@@ -337,8 +338,15 @@ public class FunnyGuilds extends JavaPlugin {
         this.dataPersistenceHandler.startHandler();
 
         this.invitationPersistenceHandler = new InvitationPersistenceHandler(this);
-        this.invitationPersistenceHandler.loadInvitations();
-        this.invitationPersistenceHandler.startHandler();
+        try {
+            this.invitationPersistenceHandler.loadInvitations();
+            this.dataLoaded = true;
+        }
+        catch (RuntimeException exception) {
+            logger.error("Could not load invitations; existing data was preserved", exception);
+            this.shutdown("Could not load invitations");
+            return;
+        }
 
         this.injector = DependencyInjection.createInjector(resources -> {
             resources.on(Server.class).assignInstance(this.getServer());
@@ -374,7 +382,7 @@ public class FunnyGuilds extends JavaPlugin {
         MetricsCollector collector = new MetricsCollector(this);
         collector.start();
 
-        this.guildValidationTask = Option.of(Bukkit.getScheduler().runTaskTimerAsynchronously(this, new GuildValidationHandler(this), 100L, 20L));
+        this.guildValidationTask = Option.of(Bukkit.getScheduler().runTaskTimer(this, new GuildValidationHandler(this), 100L, 20L));
         this.rankRecalculationTask = Option.of(Bukkit.getScheduler().runTaskTimerAsynchronously(this, new RankRecalculationTask(this), 20L, this.pluginConfiguration.rankingUpdateInterval));
 
         try {
@@ -402,9 +410,9 @@ public class FunnyGuilds extends JavaPlugin {
                     .add(GuildHeartProtectionHandler.class)
                     .add(TntProtection.class);
 
-            if (this.pluginConfiguration.regionsEnabled && (this.pluginConfiguration.blockFlow || !this.pluginConfiguration.blockFlowOnRegion.isEmpty())) {
-                setBuilder.add(BlockFlow.class);
-            }
+            this.dynamicListenerManager.registerDynamic(
+                    () -> this.pluginConfiguration.regionsEnabled && (this.pluginConfiguration.blockFlow || !this.pluginConfiguration.blockFlowOnRegion.isEmpty()),
+                    this.injector.newInstanceWithFields(BlockFlow.class));
 
             for (Class<? extends Listener> listenerClass : setBuilder.build()) {
                 pluginManager.registerEvents(this.injector.newInstanceWithFields(listenerClass), this);
@@ -466,10 +474,10 @@ public class FunnyGuilds extends JavaPlugin {
     }
 
     public void reloadTablistRendering() {
-        this.tablistRenderer = Option.none();
         this.tablistBroadcastTask.peek(task -> Bukkit.getScheduler().cancelTask(task.getTaskId()));
         this.tablistBroadcastTask = Option.none();
-        
+        this.tablistRenderer.peek(TablistRenderer::close);
+        this.tablistRenderer = Option.none();
         this.tablistRenderer = Option.when(
                 this.tablistConfiguration.enabled,
                 () -> new TablistRenderer(
@@ -486,7 +494,7 @@ public class FunnyGuilds extends JavaPlugin {
                 )
         ).orElse(Option.none())
                 .peek(renderer -> this.tablistBroadcastTask = Option.of(Bukkit.getScheduler()
-                .runTaskTimerAsynchronously(
+                .runTaskTimer(
                         this,
                         new TablistBroadcastHandler(renderer),
                         20L,
@@ -496,27 +504,28 @@ public class FunnyGuilds extends JavaPlugin {
 
     @Override
     public void onDisable() {
-        if (this.forceDisabling) {
+        this.isDisabling = true;
+        this.getServer().getScheduler().cancelTasks(this);
+        if (!this.dataLoaded || this.dataPersistenceHandler == null || this.invitationPersistenceHandler == null) {
+            if (this.dataPersistenceHandler != null) { this.dataPersistenceHandler.close(); }
+            this.database.peek(Database::shutdown);
             return;
         }
 
-        this.isDisabling = true;
-
-        this.funnyCommands.dispose();
+        if (this.funnyCommands != null) { this.funnyCommands.dispose(); }
         this.dynamicListenerManager.unregisterAll();
         this.guildEntityHelper.despawnGuildEntities(this.guildManager);
 
         this.guildValidationTask.peek(BukkitTask::cancel);
         this.tablistBroadcastTask.peek(BukkitTask::cancel);
+        this.tablistRenderer.peek(TablistRenderer::close);
         this.rankRecalculationTask.peek(BukkitTask::cancel);
 
-        this.dataModel.save(false);
         this.dataPersistenceHandler.stopHandler();
-
-        this.invitationPersistenceHandler.saveInvitations();
         this.invitationPersistenceHandler.stopHandler();
-
-        this.getServer().getScheduler().cancelTasks(this);
+        this.cleanupScoreboards();
+        this.dataPersistenceHandler.save(true);
+        this.dataPersistenceHandler.close();
         this.database.peek(Database::shutdown);
 
         plugin = null;
@@ -721,11 +730,39 @@ public class FunnyGuilds extends JavaPlugin {
     }
 
     public void reloadConfiguration() throws OkaeriException {
-        this.pluginConfiguration.load();
-        this.tablistConfiguration.load();
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("Reload must be applied on the primary thread");
+        }
+        PluginConfiguration candidate = ConfigurationFactory.createPluginConfiguration(this.pluginConfigurationFile);
+        ItemsConfiguration candidateItems = ConfigurationFactory.createItemsConfiguration(this.itemsConfigurationFile);
+        TablistConfiguration candidateTablist = ConfigurationFactory.createTablistConfiguration(this.tablistConfigurationFile);
+        net.dzikoysk.funnyguilds.config.ConfigurationValidation.requireReloadable(this.pluginConfiguration, candidate);
+        // Validate every language before changing any live configuration.
+        for (java.util.Locale locale : this.pluginConfiguration.availableLocales) {
+            ConfigurationFactory.createMessageConfiguration(new File(this.pluginLanguageFolderFile, locale + ".yml"));
+        }
+        net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidate, this.pluginConfiguration);
+        net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidateItems, this.itemsConfiguration);
+        net.dzikoysk.funnyguilds.config.ConfigurationValidation.copyValues(candidateTablist, this.tablistConfiguration);
         this.messageService.reload();
         this.hookManager.callConfigUpdated();
         this.prepareScoreboardServices();
+        this.rankRecalculationTask.peek(BukkitTask::cancel);
+        this.rankRecalculationTask = Option.of(Bukkit.getScheduler().runTaskTimerAsynchronously(this,
+                new RankRecalculationTask(this), 20L, this.pluginConfiguration.rankingUpdateInterval));
+    }
+
+    private void cleanupScoreboards() {
+        this.individualNameTagManager = Option.none();
+        this.dummyManager = Option.none();
+        if (this.userManager == null) { return; }
+        this.userManager.getUsers().forEach(user -> {
+            user.getCache().getIndividualNameTag().peek(net.dzikoysk.funnyguilds.feature.scoreboard.nametag.IndividualNameTag::close);
+            user.getCache().getDummy().peek(net.dzikoysk.funnyguilds.feature.scoreboard.dummy.Dummy::close);
+            user.getCache().setIndividualNameTag(null);
+            user.getCache().setDummy(null);
+            user.getCache().setScoreboard(null);
+        });
     }
 
     private void prepareScoreboardServices() {
@@ -733,6 +770,7 @@ public class FunnyGuilds extends JavaPlugin {
         this.dummyUpdateTask.peek(BukkitTask::cancel);
         this.scoreboardQueueUpdateTask.peek(BukkitTask::cancel);
 
+        this.cleanupScoreboards();
         ScoreboardConfiguration scoreboardConfig = this.pluginConfiguration.scoreboard;
         if (!scoreboardConfig.enabled) {
             return;

@@ -2,9 +2,10 @@ package net.dzikoysk.funnyguilds.data.tasks;
 
 import net.dzikoysk.funnyguilds.data.database.serializer.DatabaseGuildSerializer;
 import net.dzikoysk.funnyguilds.guild.Guild;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
+import net.dzikoysk.funnyguilds.FunnyGuilds;
 
-public class DatabaseUpdateGuildPointsAsyncTask extends AsyncFunnyTask {
+public class DatabaseUpdateGuildPointsAsyncTask extends SyncFunnyTask {
 
     private final Guild guild;
 
@@ -14,7 +15,10 @@ public class DatabaseUpdateGuildPointsAsyncTask extends AsyncFunnyTask {
 
     @Override
     public void execute() {
-        DatabaseGuildSerializer.updatePoints(this.guild);
+        FunnyGuilds plugin = FunnyGuilds.getInstance();
+        if (plugin.getGuildManager().findByUuid(this.guild.getUUID()).contentEquals(this.guild)) {
+            plugin.getDataPersistenceHandler().requestSave();
+        }
     }
 
 }

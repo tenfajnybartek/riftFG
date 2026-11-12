@@ -52,6 +52,11 @@ public final class DatabaseRegionSerializer {
     }
 
     public static void serialize(Region region) {
+        prepare(region).run();
+    }
+
+    public static Runnable prepare(Region region) {
+        long revision = region.getRevision();
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLNamedStatement statement = SQLBasicUtils.getInsert(dataModel.getRegionsTable());
 
@@ -60,16 +65,22 @@ public final class DatabaseRegionSerializer {
         statement.set("size", region.getSize());
         statement.set("enlarge", region.getEnlargementLevel());
 
-        statement.executeUpdate();
-        region.markUnchanged();
+        return () -> {
+            statement.executeUpdate();
+            net.dzikoysk.funnyguilds.data.database.Database.afterCommit(() -> region.markSaved(revision));
+        };
     }
 
     public static void delete(Region region) {
+        prepareDelete(region).run();
+    }
+
+    public static Runnable prepareDelete(Region region) {
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLNamedStatement statement = SQLBasicUtils.getDelete(dataModel.getRegionsTable());
 
         statement.set("name", region.getName());
-        statement.executeUpdate();
+        return statement::executeUpdate;
     }
 
 }

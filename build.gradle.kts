@@ -132,7 +132,7 @@ subprojects {
             "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
             "--add-opens=java.base/java.util=ALL-UNNAMED"
         ) // I hate JDK team (https://github.com/mockito/mockito/issues/3037)
-        useJUnitPlatform()
+        useJUnitPlatform { excludeTags("database") }
         setForkEvery(1)
         maxParallelForks = 4
 

@@ -130,10 +130,10 @@ if (guildOption.isPresent()) {
 ### Nasłuchiwanie wydarzeń
 
 Wydarzenia dotyczące:
-- zmian rankingu: [net/dzikoysk/funnyguilds/event/rank](https://github.com/FunnyGuilds/FunnyGuilds/tree/master/plugin/src/main/java/net/dzikoysk/funnyguilds/event/rank)
-- gildii: [net/dzikoysk/funnyguilds/event/guild](https://github.com/FunnyGuilds/FunnyGuilds/tree/master/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild)
-- członków gildii: [net/dzikoysk/funnyguilds/event/guild/member](https://github.com/FunnyGuilds/FunnyGuilds/tree/master/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild/member)
-- sojuszy: [net/dzikoysk/funnyguilds/event/guild/ally](https://github.com/FunnyGuilds/FunnyGuilds/tree/master/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild/ally)
+- zmian rankingu: [net/dzikoysk/funnyguilds/event/rank](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x/plugin/src/main/java/net/dzikoysk/funnyguilds/event/rank)
+- gildii: [net/dzikoysk/funnyguilds/event/guild](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild)
+- członków gildii: [net/dzikoysk/funnyguilds/event/guild/member](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild/member)
+- sojuszy: [net/dzikoysk/funnyguilds/event/guild/ally](https://github.com/FunnyGuilds/FunnyGuilds/tree/5.x/plugin/src/main/java/net/dzikoysk/funnyguilds/event/guild/ally)
 
 Przykład z użyciem `GuildDeleteEvent`:
 
@@ -143,7 +143,7 @@ public class GuildDeleteListener implements Listener {
     @EventHandler
     public void onGuildDelete(GuildDeleteEvent event) {
         Guild guild = event.getGuild();
-        User doer = event.getDoer();
+        Option<User> doer = event.getDoer();
         FunnyEvent.EventCause eventCause = event.getEventCause();
 
     }
@@ -159,3 +159,7 @@ public void onEnable() {
     this.getServer().getPluginManager().registerEvents(new GuildDeleteListener(), this);
 }
 ```
+
+## Wątki eventów
+
+Ataki na serca i związane z nimi zmiany stanu wykonywane są na głównym wątku serwera. Eventy czatu gildii podążają za `AsyncChatEvent` i mogą być asynchroniczne. Sprawdzaj `event.isAsynchronous()` i planuj zmiany świata lub ekwipunku na głównym wątku. `getDoer()` zwraca `Option<User>`, który może być pusty dla działań systemu lub konsoli.

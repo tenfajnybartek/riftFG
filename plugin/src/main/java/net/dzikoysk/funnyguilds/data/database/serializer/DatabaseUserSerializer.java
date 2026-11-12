@@ -57,6 +57,11 @@ public final class DatabaseUserSerializer {
     }
 
     public static void serialize(User user) {
+        prepare(user).run();
+    }
+
+    public static Runnable prepare(User user) {
+        long revision = user.getRevision();
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLNamedStatement statement = SQLBasicUtils.getInsert(dataModel.getUsersTable());
 
@@ -71,18 +76,24 @@ public final class DatabaseUserSerializer {
         statement.set("reason", user.getBan().map(UserBan::getReason).orNull());
         statement.set("last_ip", user.getLastIP());
 
-        statement.executeUpdate();
-        user.markUnchanged();
+        return () -> {
+            statement.executeUpdate();
+            net.dzikoysk.funnyguilds.data.database.Database.afterCommit(() -> user.markSaved(revision));
+        };
     }
 
     public static void updatePoints(User user) {
+        prepareUpdatePoints(user).run();
+    }
+
+    public static Runnable prepareUpdatePoints(User user) {
         SQLDataModel dataModel = (SQLDataModel) FunnyGuilds.getInstance().getDataModel();
         SQLTable table = dataModel.getUsersTable();
         SQLNamedStatement statement = SQLBasicUtils.getUpdate(table, table.getSQLElement("points").orNull());
 
         statement.set("points", user.getRank().getPoints());
         statement.set("uuid", user.getUUID().toString());
-        statement.executeUpdate();
+        return statement::executeUpdate;
     }
 
 }

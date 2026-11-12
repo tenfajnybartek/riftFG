@@ -53,19 +53,25 @@ public final class FlatUserSerializer {
     }
 
     public static boolean serialize(User user) {
+        prepare(user).run();
+        return true;
+    }
+
+    public static Runnable prepare(User user) {
+        long revision = user.getRevision();
         FlatDataModel dataModel = (FlatDataModel) FunnyGuilds.getInstance().getDataModel();
 
         Option<File> fileOption = dataModel.getUserFile(user);
         if (fileOption.isEmpty()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare user for persistence");
         }
 
         File userFile = fileOption.get();
         if (userFile.isDirectory()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare user for persistence");
         }
 
-        YamlWrapper wrapper = new YamlWrapper(userFile);
+        YamlWrapper wrapper = new YamlWrapper(userFile, false);
         wrapper.set("uuid", user.getUUID().toString());
         wrapper.set("name", user.getName());
         wrapper.set("points", user.getRank().getPoints());
@@ -80,10 +86,7 @@ public final class FlatUserSerializer {
             wrapper.set("reason", ban.getReason());
         });
 
-        wrapper.save();
-        user.markUnchanged();
-
-        return true;
+        return wrapper.snapshot(() -> user.markSaved(revision));
     }
 
 }

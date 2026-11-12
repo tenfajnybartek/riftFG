@@ -31,7 +31,7 @@ default).
 
 FunnyGuilds provides two war modes (`war.mode`):
 - **`MODERN`** (default) — a dynamic war system where attackers can gain lives by conquering hearts (`conquer-gain-life`) and winning wars (`win-gain-life`), win streaks are tracked and announced, and anti-farming protection is enforced.
-- **`LEGACY`** — classic war mode with no life regeneration or combat rewards.
+- **`LEGACY`** — classic war mode: conquering a heart does not reward a life, but destroying a guild grants the winner +1 life without the MODERN cap or MODERN anti-farming rules.
 
 | Option | Default | Description |
 |---|---|---|
@@ -70,10 +70,16 @@ controlled by `damage-guild`.
 :::note[Other options]
 `lives-repeating-symbol` sets the appearance of the `{G-LIVES-SYMBOL}`
 placeholder — separate symbols for full and empty lives, and for any surplus
-above `war-lives`.
+above `war.lives`.
 :::
 
 ## Banning a guild
 
 An admin can ban a guild with `/ga ban <tag> <time> <reason>`. The ban
 expires after the given time; `/ga unban <tag>` also lifts it.
+
+### Reward and payment consistency
+
+In MODERN mode anti-farming checks apply both to heart-conquest rewards and to the final war-win life reward. Victim cooldowns are persisted in FLAT and SQL and survive restart. When IP protection is enabled, the plugin records the last known player IP on join, independently of the ranking IP option.
+
+A cancelled life-loss event grants no protection period or reward. Life purchases require a working Vault economy provider when money is part of the price. A rejected withdrawal grants no life and consumes no items.

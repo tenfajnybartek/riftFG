@@ -10,4 +10,12 @@ public interface MutableEntity extends Entity {
 
     boolean wasChanged();
 
+    default long getRevision() {
+        return 0;
+    }
+
+    default void markSaved(long revision) {
+        this.markUnchanged();
+    }
+
 }

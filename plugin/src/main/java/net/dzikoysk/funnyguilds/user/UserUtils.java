@@ -72,7 +72,7 @@ public final class UserUtils {
             return Option.of(file);
         }
 
-        if (FunnyValidator.validateUsername(config, filenameWithoutExtension) != NameResult.VALID) {
+        if (FunnyValidator.validateUsername(config, filenameWithoutExtension) == NameResult.VALID) {
             return migrateUserFile(file)
                     .onError(error -> FunnyGuilds.getPluginLogger().error(error))
                     .toOption();
@@ -99,7 +99,7 @@ public final class UserUtils {
         Path target = source.resolveSibling(String.format("%s.yml", id));
 
         if (Files.exists(target)) {
-            return Result.ok(target.toFile());
+            return Result.error("Duplicate user files: " + source + " and " + target + "; resolve before starting");
         }
 
         return Result.attempt(IOException.class, () -> Files.move(source, target, StandardCopyOption.REPLACE_EXISTING).toFile())

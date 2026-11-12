@@ -77,6 +77,8 @@ public final class FunnyIOUtils {
         try {
             URLConnection connection = new URL(urlString).openConnection();
             connection.setRequestProperty("User-Agent", "Mozilla/5.0");
+            connection.setConnectTimeout(5000);
+            connection.setReadTimeout(10000);
 
             String encoding = connection.getContentEncoding();
             encoding = encoding == null ? "UTF-8" : encoding;

@@ -52,28 +52,31 @@ public final class FlatRegionSerializer {
     }
 
     public static boolean serialize(Region region) {
+        prepare(region).run();
+        return true;
+    }
+
+    public static Runnable prepare(Region region) {
+        long revision = region.getRevision();
         FlatDataModel dataModel = (FlatDataModel) FunnyGuilds.getInstance().getDataModel();
 
         Option<File> fileOption = dataModel.getRegionFile(region);
         if (fileOption.isEmpty()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare region for persistence");
         }
 
         File regionFile = fileOption.get();
         if (regionFile.isDirectory()) {
-            return false;
+            throw new IllegalStateException("Cannot prepare region for persistence");
         }
 
-        YamlWrapper wrapper = new YamlWrapper(regionFile);
+        YamlWrapper wrapper = new YamlWrapper(regionFile, false);
         wrapper.set("name", region.getName());
         wrapper.set("center", LocationUtils.toString(region.getCenter()));
         wrapper.set("size", region.getSize());
         wrapper.set("enlarge", region.getEnlargementLevel());
 
-        wrapper.save();
-        region.markUnchanged();
-
-        return true;
+        return wrapper.snapshot(() -> region.markSaved(revision));
     }
 
 }

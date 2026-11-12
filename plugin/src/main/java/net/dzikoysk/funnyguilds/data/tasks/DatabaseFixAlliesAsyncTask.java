@@ -1,9 +1,9 @@
 package net.dzikoysk.funnyguilds.data.tasks;
 
 import net.dzikoysk.funnyguilds.guild.GuildManager;
-import net.dzikoysk.funnyguilds.shared.FunnyTask.AsyncFunnyTask;
+import net.dzikoysk.funnyguilds.shared.FunnyTask.SyncFunnyTask;
 
-public class DatabaseFixAlliesAsyncTask extends AsyncFunnyTask {
+public class DatabaseFixAlliesAsyncTask extends SyncFunnyTask {
 
     private final GuildManager guildManager;
 

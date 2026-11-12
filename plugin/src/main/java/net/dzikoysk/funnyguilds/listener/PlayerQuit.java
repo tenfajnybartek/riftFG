@@ -30,6 +30,7 @@ public class PlayerQuit extends AbstractFunnyListener {
     }
 
     private void handleQuit(Player player) {
+        net.dzikoysk.funnyguilds.data.util.ConfirmationList.remove(player.getUniqueId());
         this.plugin.getTablistRenderer().peek(renderer -> renderer.stopSending(player));
         this.userManager.findByUuid(player.getUniqueId()).peek(user -> {
             UserCache cache = user.getCache();

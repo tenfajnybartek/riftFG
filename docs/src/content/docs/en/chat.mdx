@@ -72,3 +72,7 @@ count as online in placeholders). Points shown under a player's nickname
 are a separate option, `scoreboard.dummy` — see
 [Rankings & combat](/en/rankings-combat/).
 :::
+
+## Moderation integrations
+
+Guild chat uses the current `AsyncChatEvent` message, respecting edits made by earlier listeners. A message changed through `GuildPreChatEvent.setFormattedMessage()` is sent to guild recipients and included in the final `GuildChatEvent`.

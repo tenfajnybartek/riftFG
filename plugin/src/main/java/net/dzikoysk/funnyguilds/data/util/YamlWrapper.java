@@ -2,52 +2,54 @@ package net.dzikoysk.funnyguilds.data.util;
 
 import java.io.File;
 import java.io.IOException;
-import net.dzikoysk.funnyguilds.FunnyGuilds;
-import net.dzikoysk.funnyguilds.shared.FunnyIOUtils;
+import java.io.UncheckedIOException;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
-import panda.std.Result;
 
 public final class YamlWrapper extends YamlConfiguration {
 
     private final File file;
 
     public YamlWrapper(File file) {
-        Result<File, String> createResult = FunnyIOUtils.createFile(file, false);
-        if (createResult.isErr()) {
-            FunnyGuilds.getPluginLogger().error(createResult.getError());
-            this.file = null;
-            return;
-        }
+        this(file, true);
+    }
 
-        this.file = createResult.get();
-
-        try {
-            super.load(this.file);
-        }
-        catch (Exception exception) {
-            FunnyGuilds.getPluginLogger().error("Failed to load YAML file", exception);
+    public YamlWrapper(File file, boolean loadExisting) {
+        this.file = file;
+        if (loadExisting && file.exists()) {
+            try {
+                super.load(file);
+            }
+            catch (Exception exception) {
+                throw new IllegalStateException("Cannot read YAML; existing data was preserved: " + file, exception);
+            }
         }
     }
 
     @Override
     public void save(@NotNull File file) {
-        try {
-            Result<File, String> createResult = FunnyIOUtils.createFile(file, false);
-            if (createResult.isErr()) {
-                FunnyGuilds.getPluginLogger().error(createResult.getError());
-                return;
-            }
-
-            super.save(file);
-        }
-        catch (IOException exception) {
-            FunnyGuilds.getPluginLogger().error("Failed to save YAML file", exception);
-        }
+        write(file, this.saveToString());
     }
 
     public void save() {
         this.save(this.file);
     }
 
+    /** Capture YAML on its owning thread; the worker only performs IO. */
+    public Runnable snapshot(Runnable onSuccess) {
+        String content = this.saveToString();
+        return () -> {
+            write(this.file, content);
+            onSuccess.run();
+        };
+    }
+
+    private static void write(File file, String content) {
+        try {
+            AtomicFiles.write(file.toPath(), content);
+        }
+        catch (IOException exception) {
+            throw new UncheckedIOException("Failed to save YAML: " + file, exception);
+        }
+    }
 }

@@ -29,7 +29,7 @@ import panda.std.stream.PandaStream;
 public class RegionManager {
 
     private final PluginConfiguration pluginConfiguration;
-    private final Map<Long, Set<Region>> regions = new ConcurrentHashMap<>();
+    private final Map<ChunkKey, Set<Region>> regions = new ConcurrentHashMap<>();
 
     public RegionManager(PluginConfiguration pluginConfiguration) {
         this.pluginConfiguration = pluginConfiguration;
@@ -87,7 +87,7 @@ public class RegionManager {
      * @return the region
      */
     public Option<Region> findRegionAtLocation(Location location) {
-        long packedPos = packChunkPosition(location.getBlockX() >> 4, location.getBlockZ() >> 4);
+        ChunkKey packedPos = new ChunkKey(location.getWorld().getUID(), packChunkPosition(location.getBlockX() >> 4, location.getBlockZ() >> 4));
         Set<Region> applicableRegions = this.regions.get(packedPos);
 
         if (applicableRegions == null || applicableRegions.isEmpty()) {
@@ -180,9 +180,9 @@ public class RegionManager {
         Validate.notNull(region, "region can't be null!");
 
         this.forEachChunkPositionInRegion(region, (chunkX, chunkZ) -> {
-            long packedPos = packChunkPosition(chunkX, chunkZ);
+            ChunkKey packedPos = new ChunkKey(region.getWorld().getUID(), packChunkPosition(chunkX, chunkZ));
 
-            Set<Region> regionsAtChunk = this.regions.computeIfAbsent(packedPos, k -> new HashSet<>());
+            Set<Region> regionsAtChunk = this.regions.computeIfAbsent(packedPos, k -> ConcurrentHashMap.newKeySet());
             regionsAtChunk.add(region);
         });
     }
@@ -201,11 +201,11 @@ public class RegionManager {
         }
 
         this.forEachChunkPositionInRegion(region, (chunkX, chunkZ) -> {
-            long packedPos = packChunkPosition(chunkX, chunkZ);
+            ChunkKey packedPos = new ChunkKey(region.getWorld().getUID(), packChunkPosition(chunkX, chunkZ));
 
             this.regions.computeIfPresent(packedPos, (key, set) -> {
                 set.remove(region);
-                return set;
+                return set.isEmpty() ? null : set;
             });
         });
     }
@@ -245,13 +245,9 @@ public class RegionManager {
     public void deleteRegion(DataModel dataModel, Region region) {
         Validate.notNull(region, "region can't be null!");
 
-        if (dataModel instanceof FlatDataModel) {
-            ((FlatDataModel) dataModel).getRegionFile(region).peek(FunnyIOUtils::deleteFile);
-        }
-
-        if (dataModel instanceof SQLDataModel) {
-            DatabaseRegionSerializer.delete(region);
-        }
+        net.dzikoysk.funnyguilds.FunnyGuilds plugin = net.dzikoysk.funnyguilds.FunnyGuilds.getInstance();
+        plugin.getDataPersistenceHandler().submitWrite(net.dzikoysk.funnyguilds.data.PendingDeletion.prepare(
+                plugin, "region", region.getName(), region.getName(), null));
 
         this.removeRegion(region);
     }
@@ -288,6 +284,9 @@ public class RegionManager {
                 chunkPosFunc.accept(chunkX, chunkZ);
             }
         }
+    }
+
+    private record ChunkKey(UUID world, long position) {
     }
 
     private static long packChunkPosition(int chunkX, int chunkZ) {

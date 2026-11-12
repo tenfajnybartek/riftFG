@@ -45,6 +45,10 @@ public class Dummy {
         return Option.of(objective);
     }
 
+    public void close() {
+        this.user.getCache().getScoreboard().map(board -> board.getObjective(OBJECTIVE_NAME)).peek(Objective::unregister);
+    }
+
     // Update specific player for this user
     public void updatePlayer(User target) {
         if (target.hasPermission("funnyguilds.admin.disabledummy")) {

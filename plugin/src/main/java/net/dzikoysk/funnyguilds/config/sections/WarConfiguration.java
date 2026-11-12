@@ -14,7 +14,7 @@ import eu.okaeri.configs.serdes.commons.duration.DurationSpec;
 public class WarConfiguration extends OkaeriConfig {
 
     @Comment("Tryb systemu wojen:")
-    @Comment(" LEGACY - klasyczne wypowiadanie wojen, brak regeneracji zyc, brak nagrod za wygrane")
+    @Comment(" LEGACY - klasyczne wypowiadanie wojen, +1 zycie za calkowite zniszczenie gildii (bez limitu MODERN), brak nagrody za samo serce")
     @Comment(" MODERN - dynamiczne zdobywanie zyc za podbicia i wygrane wojny, serie zwyciestw (streak), wykup serc")
     public WarMode mode = WarMode.MODERN;
 

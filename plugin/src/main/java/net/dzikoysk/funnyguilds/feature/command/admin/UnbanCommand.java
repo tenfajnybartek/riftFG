@@ -35,7 +35,7 @@ public final class UnbanCommand extends AbstractFunnyCommand {
 
         FunnyFormatter formatter = new FunnyFormatter()
                 .register("{GUILD}", guild.getName())
-                .register("{TAG}", guild.getName())
+                .register("{TAG}", guild.getTag())
                 .register("{ADMIN}", sender.getName());
 
         this.messageService.getMessage(config -> config.adminGuildUnban)

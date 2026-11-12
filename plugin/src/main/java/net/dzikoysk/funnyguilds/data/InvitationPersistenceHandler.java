@@ -41,8 +41,8 @@ public class InvitationPersistenceHandler {
             this.invitationPersistenceHandlerTask.cancel();
         }
 
-        this.invitationPersistenceHandlerTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this.plugin,
-                this::saveInvitations, interval, interval);
+        this.invitationPersistenceHandlerTask = Bukkit.getScheduler().runTaskTimer(this.plugin,
+                () -> this.plugin.getDataPersistenceHandler().submitWrite(this.prepareSave()), interval, interval);
     }
 
     public void stopHandler() {
@@ -55,9 +55,11 @@ public class InvitationPersistenceHandler {
     }
 
     public void saveInvitations() {
-        FunnyIOUtils.deleteFile(this.invitationsFile);
+        this.prepareSave().run();
+    }
 
-        YamlWrapper yaml = new YamlWrapper(this.invitationsFile);
+    public Runnable prepareSave() {
+        YamlWrapper yaml = new YamlWrapper(this.invitationsFile, false);
         this.guildManager.getGuilds().forEach(guild -> {
             List<String> guildInvitations = PandaStream.of(this.guildInvitationList.getInvitationsFrom(guild))
                     .map(GuildInvitation::getToUUID)
@@ -73,7 +75,7 @@ public class InvitationPersistenceHandler {
             yaml.set(guild.getUUID().toString() + ".guilds", allyInvitations);
         });
 
-        yaml.save();
+        return yaml.snapshot(() -> {});
     }
 
     public void loadInvitations() {
@@ -83,7 +85,7 @@ public class InvitationPersistenceHandler {
 
         YamlWrapper yaml = new YamlWrapper(this.invitationsFile);
         PandaStream.of(yaml.getKeys(false))
-                .map(UUID::fromString)
+                .mapOpt(InvitationPersistenceHandler::parseUuid)
                 .mapOpt(this.guildManager::findByUuid)
                 .forEach(guild -> {
                     this.loadGuildInvitations(yaml, guild);
@@ -93,15 +95,25 @@ public class InvitationPersistenceHandler {
 
     private void loadGuildInvitations(YamlWrapper yaml, Guild guild) {
         PandaStream.of(yaml.getStringList(guild.getUUID().toString() + ".players"))
-                .map(UUID::fromString)
+                .mapOpt(InvitationPersistenceHandler::parseUuid)
                 .forEach(userUuid -> this.guildInvitationList.createInvitation(guild.getUUID(), userUuid));
     }
 
     private void loadAllyInvitations(YamlWrapper yaml, Guild guild) {
         PandaStream.of(yaml.getStringList(guild.getUUID().toString() + ".guilds"))
-                .map(UUID::fromString)
+                .mapOpt(InvitationPersistenceHandler::parseUuid)
                 .mapOpt(this.guildManager::findByUuid)
                 .forEach(allyGuild -> this.allyInvitationList.createInvitation(guild, allyGuild));
+    }
+
+    private static Option<UUID> parseUuid(String value) {
+        try {
+            return Option.of(UUID.fromString(value));
+        }
+        catch (IllegalArgumentException exception) {
+            FunnyGuilds.getPluginLogger().warning("Skipping invalid invitation UUID: " + value);
+            return Option.none();
+        }
     }
 
 }

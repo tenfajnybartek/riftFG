@@ -391,8 +391,6 @@ public class Guild extends AbstractMutableEntity {
             return true;
         }
 
-        this.ban = Option.none();
-        this.markChanged();
         return false;
     }
 
@@ -488,6 +486,29 @@ public class Guild extends AbstractMutableEntity {
     public void setGainLifeCooldownOn(Guild victimGuild, java.time.Duration cooldown) {
         if (cooldown != null && !cooldown.isZero() && !cooldown.isNegative()) {
             this.victimGainCooldowns.put(victimGuild.getUUID(), Instant.now().plus(cooldown));
+            this.markChanged();
+        }
+    }
+
+    public String serializeLifeGainCooldowns() {
+        this.victimGainCooldowns.entrySet().removeIf(entry -> !entry.getValue().isAfter(Instant.now()));
+        return this.victimGainCooldowns.entrySet().stream()
+                .map(entry -> entry.getKey() + "=" + entry.getValue().toEpochMilli())
+                .sorted()
+                .collect(java.util.stream.Collectors.joining(";"));
+    }
+
+    public void restoreLifeGainCooldowns(String value) {
+        this.victimGainCooldowns.clear();
+        if (value == null || value.isBlank()) {
+            return;
+        }
+        for (String entry : value.split(";")) {
+            String[] parts = entry.split("=", 2);
+            Instant until = Instant.ofEpochMilli(Long.parseLong(parts[1]));
+            if (until.isAfter(Instant.now())) {
+                this.victimGainCooldowns.put(UUID.fromString(parts[0]), until);
+            }
         }
     }
 

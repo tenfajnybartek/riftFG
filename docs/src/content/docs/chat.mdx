@@ -68,3 +68,7 @@ ustala, jak często nametagi są odświeżane niezależnie od innych wyzwalaczy
 
 Punkty pod nickiem gracza to osobna opcja `scoreboard.dummy` — patrz [Rankingi i walka](/rankings-combat/).
 :::
+
+## Integracje moderacji
+
+Czat gildii korzysta z aktualnej wiadomości `AsyncChatEvent`, respektując zmiany wcześniejszych listenerów. Tekst ustawiony przez `GuildPreChatEvent.setFormattedMessage()` trafia do odbiorców gildii oraz do końcowego `GuildChatEvent`.

@@ -39,23 +39,30 @@ public class SQLNamedStatement {
     }
 
     public void executeUpdate(Connection connection) throws SQLException {
-        try (PreparedStatement statement = this.setPlaceholders(connection.prepareStatement(this.sql))) {
+        try (PreparedStatement statement = connection.prepareStatement(this.sql)) {
+            this.setPlaceholders(statement);
             statement.executeUpdate();
         }
     }
 
     public void executeUpdate(boolean ignoreFails) {
+        Connection transaction = Database.currentTransaction();
+        if (transaction != null) {
+            try { this.executeUpdate(transaction); }
+            catch (SQLException exception) { throw new IllegalStateException("Database update failed", exception); }
+            return;
+        }
         Option<Database> database = FunnyGuilds.getInstance().getDatabase();
         if (database.isEmpty()) {
-            FunnyGuilds.getPluginLogger().error("Could not execute update (database is null)");
-            return;
+            throw new IllegalStateException("Could not execute update: database is not initialized");
         }
         try (Connection connection = database.get().getConnection()) {
             if (connection == null) {
                 throw new SQLException("Connection is null");
             }
 
-            try (PreparedStatement statement = this.setPlaceholders(connection.prepareStatement(this.sql))) {
+            try (PreparedStatement statement = connection.prepareStatement(this.sql)) {
+            this.setPlaceholders(statement);
                 statement.executeUpdate();
             }
         }
@@ -65,7 +72,7 @@ public class SQLNamedStatement {
                 return;
             }
 
-            FunnyGuilds.getPluginLogger().error("Could not execute update", exception);
+            throw new IllegalStateException("Could not execute database update", exception);
         }
     }
 
@@ -76,15 +83,15 @@ public class SQLNamedStatement {
     public void executeQuery(ThrowingConsumer<ResultSet, SQLException> consumer, boolean ignoreFails) {
         Option<Database> database = FunnyGuilds.getInstance().getDatabase();
         if (database.isEmpty()) {
-            FunnyGuilds.getPluginLogger().error("Could not execute query (database is null)");
-            return;
+            throw new IllegalStateException("Could not execute query: database is not initialized");
         }
         try (Connection connection = database.get().getConnection()) {
             if (connection == null) {
                 throw new SQLException("Connection is null");
             }
 
-            try (PreparedStatement statement = this.setPlaceholders(connection.prepareStatement(this.sql))) {
+            try (PreparedStatement statement = connection.prepareStatement(this.sql)) {
+            this.setPlaceholders(statement);
                 try (ResultSet resultSet = statement.executeQuery()) {
                     consumer.accept(resultSet);
                 }
@@ -96,7 +103,7 @@ public class SQLNamedStatement {
                 return;
             }
 
-            FunnyGuilds.getPluginLogger().error("Could not execute query", exception);
+            throw new IllegalStateException("Could not read database; startup aborted without repairing data", exception);
         }
     }
 

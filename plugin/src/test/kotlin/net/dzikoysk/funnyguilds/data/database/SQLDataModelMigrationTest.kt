@@ -6,7 +6,7 @@ import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Disabled
+import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.testcontainers.containers.JdbcDatabaseContainer
 import org.testcontainers.containers.MariaDBContainer
@@ -17,7 +17,7 @@ import java.sql.Connection
 import java.sql.DriverManager
 import java.util.UUID
 
-@Disabled("Requires a working Docker environment")
+@Tag("database")
 internal class MariaDBSQLDataModelMigrationTest : SQLDataModelMigrationTest() {
     companion object {
         @Container
@@ -27,7 +27,7 @@ internal class MariaDBSQLDataModelMigrationTest : SQLDataModelMigrationTest() {
     override val container: JdbcDatabaseContainer<*> get() = mariadb
 }
 
-@Disabled("Requires a working Docker environment")
+@Tag("database")
 internal class MySQLSQLDataModelMigrationTest : SQLDataModelMigrationTest() {
     companion object {
         @Container

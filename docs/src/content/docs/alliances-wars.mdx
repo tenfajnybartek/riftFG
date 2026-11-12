@@ -29,7 +29,7 @@ gildię spoza sojuszy bez wypowiadania wojny. Jedna gildia może prowadzić maks
 
 FunnyGuilds oferuje dwa tryby wojen (`war.mode`):
 - **`MODERN`** (domyślny) — dynamiczny system, w którym atakujący mogą zdobywać życia za podbicie serca (`conquer-gain-life`) oraz za wygraną wojnę (`win-gain-life`), obowiązują serie zwycięstw (*win-streak*) z powiadomieniami oraz ochrona anty-farmingowa.
-- **`LEGACY`** — klasyczny tryb bez regeneracji i zdobywania żyć w walce.
+- **`LEGACY`** — klasyczny tryb: samo zbicie serca nie daje życia, natomiast całkowite zniszczenie gildii przyznaje zwycięzcy +1 życie bez limitu i reguł antyfarmingu trybu MODERN.
 
 | Opcja | Domyślnie | Opis |
 |---|---|---|
@@ -67,10 +67,16 @@ steruje tym `damage-guild`.
 
 :::note[Inne opcje]
 `lives-repeating-symbol` ustawia wygląd placeholdera `{G-LIVES-SYMBOL}` —
-osobne symbole dla pełnych i pustych żyć oraz nadwyżki ponad `war-lives`.
+osobne symbole dla pełnych i pustych żyć oraz nadwyżki ponad `war.lives`.
 :::
 
 ## Ban gildii
 
 Administrator może zbanować gildię komendą `/ga ban <tag> <czas> <powód>`.
 Ban wygasa po podanym czasie; zdejmuje go też komenda `/ga unban <tag>`.
+
+### Spójność nagród i płatności
+
+W trybie MODERN antyfarming obejmuje zarówno nagrodę za zbicie serca, jak i życie za ostateczne zwycięstwo w wojnie. Cooldown wobec ofiary jest zapisywany w FLAT i SQL oraz przeżywa restart. Przy aktywnej ochronie IP plugin aktualizuje ostatni znany adres IP podczas wejścia gracza, niezależnie od opcji ochrony rankingu.
+
+Anulowanie utraty życia przez event nie przyznaje okresu ochronnego ani nagrody. Zakup życia z kosztem pieniężnym wymaga działającego dostawcy ekonomii Vault. Odmowa wypłaty nie daje życia i nie zużywa przedmiotów.

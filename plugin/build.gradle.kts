@@ -104,6 +104,7 @@ dependencies {
     /* tests */
     testImplementation("io.papermc.paper:paper-api:1.21-R0.1-SNAPSHOT")
     testImplementation("com.mojang:authlib:6.0.57")
+    testImplementation("net.milkbowl.vault:VaultAPI:1.7")
 
     val testcontainers = "1.20.4"
     testImplementation("org.testcontainers:testcontainers:$testcontainers")
@@ -127,7 +128,7 @@ tasks.processResources {
 
 tasks.withType<ShadowJar> {
     val commitCount = grgitService.service.get().grgit.log().size
-    archiveFileName = "FunnyGuilds ${project.version}.$commitCount (MC 1.21.5 - 26.x).jar"
+    archiveFileName = "FunnyGuilds ${project.version}.$commitCount (MC 1.21 - 26.3).jar"
 
     relocate("net.dzikoysk.funnycommands", "net.dzikoysk.funnyguilds.libs.net.dzikoysk.funnycommands")
     relocate("panda.utilities", "net.dzikoysk.funnyguilds.libs.panda.utilities")
@@ -165,4 +166,18 @@ tasks {
     runServer {
         minecraftVersion("1.21.4")
     }
+}
+
+// Real database tests fail when Docker is unavailable instead of silently passing.
+tasks.register<Test>("databaseTest") {
+    description = "Runs MariaDB and MySQL integration tests (requires Docker)."
+    group = "verification"
+    testClassesDirs = sourceSets.test.get().output.classesDirs
+    classpath = sourceSets.test.get().runtimeClasspath
+    useJUnitPlatform {
+        includeTags("database")
+        excludeTags.clear()
+    }
+    maxParallelForks = 1
+    shouldRunAfter(tasks.test)
 }
